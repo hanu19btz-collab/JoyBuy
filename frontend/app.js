@@ -2,9 +2,9 @@ const ORS_API_KEY =
     "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU3Y2IzMWI1Y2M0YTQ5YzJiMjFhNmVlNmI0YjBiNzYxIiwiaCI6Im11cm11cjY0In0=";
 
 
-// =========================
+// ======================================
 // DEPOTS
-// =========================
+// ======================================
 
 const DEPOTS = {
 
@@ -36,25 +36,25 @@ const DEPOTS = {
 
     LTN: {
 
-    id: "LTN",
+        id: "LTN",
 
-    name: "Luton Depot",
+        name: "Luton Depot",
 
-    postcode: "LU1 1LX",
+        postcode: "LU1 1AA",
 
-    lat: 51.886956,
+        lat: 51.8787,
 
-    lng: -0.452184
-}
+        lng: -0.4200
+    }
 };
 
 let currentDepot =
     DEPOTS.LE11;
 
 
-// =========================
+// ======================================
 // MAP
-// =========================
+// ======================================
 
 const map =
     L.map('map')
@@ -69,9 +69,9 @@ L.tileLayer(
 ).addTo(map);
 
 
-// =========================
+// ======================================
 // COLORS
-// =========================
+// ======================================
 
 const ROUTE_COLORS = {
 
@@ -93,9 +93,9 @@ const ROUTE_COLORS = {
 };
 
 
-// =========================
+// ======================================
 // DATA
-// =========================
+// ======================================
 
 let stopsData = [];
 
@@ -103,25 +103,18 @@ let markers = [];
 
 let polylines = [];
 
-let hiddenRoutes = [];
-
 let routeSummaries = {};
 
 let movedStops = {};
 
 
-// =========================
+// ======================================
 // ELEMENTS
-// =========================
+// ======================================
 
 const uploadBtn =
     document.getElementById(
         'uploadBtn'
-    );
-
-const rebalanceBtn =
-    document.getElementById(
-        'rebalanceBtn'
     );
 
 const exportBtn =
@@ -140,9 +133,9 @@ const depotSelector =
     );
 
 
-// =========================
+// ======================================
 // NORMALIZE ROUTE
-// =========================
+// ======================================
 
 function normalizeRouteName(
     route
@@ -157,37 +150,37 @@ function normalizeRouteName(
         .trim()
         .toLowerCase();
 
-    if (
-        clean.includes("1")
-    ) return "Route 1";
+    if (clean.includes("1")) {
+        return "Route 1";
+    }
 
-    if (
-        clean.includes("2")
-    ) return "Route 2";
+    if (clean.includes("2")) {
+        return "Route 2";
+    }
 
-    if (
-        clean.includes("3")
-    ) return "Route 3";
+    if (clean.includes("3")) {
+        return "Route 3";
+    }
 
-    if (
-        clean.includes("4")
-    ) return "Route 4";
+    if (clean.includes("4")) {
+        return "Route 4";
+    }
 
-    if (
-        clean.includes("5")
-    ) return "Route 5";
+    if (clean.includes("5")) {
+        return "Route 5";
+    }
 
-    if (
-        clean.includes("6")
-    ) return "Route 6";
+    if (clean.includes("6")) {
+        return "Route 6";
+    }
 
     return "Route 1";
 }
 
 
-// =========================
+// ======================================
 // DEPOT CHANGE
-// =========================
+// ======================================
 
 depotSelector.addEventListener(
     'change',
@@ -205,24 +198,107 @@ depotSelector.addEventListener(
 );
 
 
-// =========================
-// BUTTONS
-// =========================
+// ======================================
+// UPLOAD
+// ======================================
 
-rebalanceBtn.addEventListener(
+uploadBtn.addEventListener(
     'click',
-    rebalanceRoutes
+    async () => {
+
+        const fileInput =
+            document.getElementById(
+                'excelFile'
+            );
+
+        const file =
+            fileInput.files[0];
+
+        if (!file) {
+
+            alert(
+                "Select Excel file."
+            );
+
+            return;
+        }
+
+        uploadBtn.innerText =
+            "Loading...";
+
+        uploadBtn.disabled = true;
+
+        clearMap();
+
+        movedStops = {};
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            'file',
+            file
+        );
+
+        try {
+
+            const response =
+                await fetch(
+                    `https://joybuy-backend.onrender.com/upload?depot=${currentDepot.id}`,
+                    {
+                        method: 'POST',
+                        body: formData
+                    }
+                );
+
+            stopsData =
+                await response.json();
+
+            stopsData.forEach(
+                stop => {
+
+                    stop.id =
+                        crypto.randomUUID();
+
+                    stop.redelivery =
+                        false;
+
+                    stop.route =
+                        normalizeRouteName(
+                            stop.route
+                        );
+
+                    stop.color =
+                        ROUTE_COLORS[
+                            stop.route
+                        ] || "gray";
+                }
+            );
+
+            await renderMap();
+
+            renderSidebar();
+
+        } catch (err) {
+
+            console.error(err);
+
+            alert(
+                "Upload error."
+            );
+        }
+
+        uploadBtn.innerText =
+            "Generate Routes";
+
+        uploadBtn.disabled = false;
+    }
 );
 
-exportBtn.addEventListener(
-    'click',
-    exportRoutes
-);
 
-
-// =========================
+// ======================================
 // ADD STOP
-// =========================
+// ======================================
 
 addStopBtn.addEventListener(
     'click',
@@ -323,7 +399,7 @@ addStopBtn.addEventListener(
                 color:
                     ROUTE_COLORS[
                         selectedRoute
-                    ] || "gray",
+                    ],
 
                 redelivery:
                     isRedelivery
@@ -366,8 +442,6 @@ addStopBtn.addEventListener(
                 newStop
             );
 
-            clearMap();
-
             await renderMap();
 
             renderSidebar();
@@ -384,106 +458,9 @@ addStopBtn.addEventListener(
 );
 
 
-// =========================
-// UPLOAD
-// =========================
-
-uploadBtn.addEventListener(
-    'click',
-    async () => {
-
-        const fileInput =
-            document.getElementById(
-                'excelFile'
-            );
-
-        const file =
-            fileInput.files[0];
-
-        if (!file) {
-
-            alert(
-                "Select Excel file."
-            );
-
-            return;
-        }
-
-        uploadBtn.innerText =
-            "Loading...";
-
-        uploadBtn.disabled = true;
-
-        clearMap();
-
-        movedStops = {};
-
-        const formData =
-            new FormData();
-
-        formData.append(
-            'file',
-            file
-        );
-
-        try {
-
-           const response =
-    await fetch(
-        `https://joybuy-backend.onrender.com/upload?depot=${currentDepot.id}`,
-        {
-            method: 'POST',
-            body: formData
-        }
-    );
-            stopsData =
-                await response.json();
-
-            stopsData.forEach(
-                stop => {
-
-                    stop.id =
-                        crypto.randomUUID();
-
-                    stop.redelivery =
-                        false;
-
-                    stop.route =
-                        normalizeRouteName(
-                            stop.route
-                        );
-
-                    stop.color =
-                        ROUTE_COLORS[
-                            stop.route
-                        ];
-                }
-            );
-
-            await renderMap();
-
-            renderSidebar();
-
-        } catch (err) {
-
-            console.error(err);
-
-            alert(
-                "Upload error."
-            );
-        }
-
-        uploadBtn.innerText =
-            "Generate Routes";
-
-        uploadBtn.disabled = false;
-    }
-);
-
-
-// =========================
+// ======================================
 // CLEAR MAP
-// =========================
+// ======================================
 
 function clearMap() {
 
@@ -503,9 +480,9 @@ function clearMap() {
 }
 
 
-// =========================
+// ======================================
 // RENDER MAP
-// =========================
+// ======================================
 
 async function renderMap() {
 
@@ -535,7 +512,7 @@ async function renderMap() {
     ]);
 
     stopsData.forEach(
-        (stop) => {
+        stop => {
 
             if (
                 !stop.lat ||
@@ -693,9 +670,9 @@ async function renderMap() {
 }
 
 
-// =========================
+// ======================================
 // DRAW ROUTE
-// =========================
+// ======================================
 
 async function drawRealRoute(
     routeName,
@@ -759,69 +736,69 @@ async function drawRealRoute(
                 }
             );
 
-        const data =
-            await response.json();
+            const data =
+                await response.json();
 
-        if (
-            !data.features ||
-            !data.features.length
-        ) {
-            return;
-        }
+            if (
+                !data.features ||
+                !data.features.length
+            ) {
+                return;
+            }
 
-        const routeLayer =
-            L.geoJSON(data, {
+            const routeLayer =
+                L.geoJSON(data, {
 
-                style: {
+                    style: {
 
-                    color: color,
+                        color: color,
 
-                    weight: 5,
+                        weight: 5,
 
-                    opacity: 0.8
-                }
+                        opacity: 0.8
+                    }
 
-            }).addTo(map);
+                }).addTo(map);
 
-        polylines.push(routeLayer);
+            polylines.push(routeLayer);
 
-        const summary =
-            data.features[0]
-                .properties
-                .summary;
+            const summary =
+                data.features[0]
+                    .properties
+                    .summary;
 
-        const distanceMiles =
-            (
-                summary.distance *
-                0.000621371
-            ).toFixed(1);
+            const distanceMiles =
+                (
+                    summary.distance *
+                    0.000621371
+                ).toFixed(1);
 
-        const totalMinutes =
-            Math.round(
-                summary.duration / 60
-            );
+            const totalMinutes =
+                Math.round(
+                    summary.duration / 60
+                );
 
-        const hours =
-            Math.floor(
-                totalMinutes / 60
-            );
+            const hours =
+                Math.floor(
+                    totalMinutes / 60
+                );
 
-        const minutes =
-            totalMinutes % 60;
+            const minutes =
+                totalMinutes % 60;
 
-        const formattedTime =
-            `${hours}h ${minutes}m`;
+            const formattedTime =
+                `${hours}h ${minutes}m`;
 
-        routeSummaries[
-            routeName
-        ] = {
+            routeSummaries[
+                routeName
+            ] = {
 
-            distance:
-                distanceMiles,
+                distance:
+                    distanceMiles,
 
-            duration:
-                formattedTime
-        };
+                duration:
+                    formattedTime
+            };
 
     } catch (err) {
 
@@ -830,9 +807,9 @@ async function drawRealRoute(
 }
 
 
-// =========================
+// ======================================
 // POPUP
-// =========================
+// ======================================
 
 function createPopup(stopId) {
 
@@ -924,9 +901,9 @@ function createPopup(stopId) {
 }
 
 
-// =========================
+// ======================================
 // ROUTE OPTIONS
-// =========================
+// ======================================
 
 function getRouteOptions(
     currentRoute
@@ -955,9 +932,9 @@ function getRouteOptions(
 }
 
 
-// =========================
+// ======================================
 // POSITION OPTIONS
-// =========================
+// ======================================
 
 window.updatePositionOptions =
 function(stopId) {
@@ -981,11 +958,6 @@ function(stopId) {
         );
 
     positionSelect.innerHTML = '';
-
-    const stop =
-        stopsData.find(
-            x => x.id === stopId
-        );
 
     let currentPosition = 1;
 
@@ -1026,9 +998,9 @@ function(stopId) {
 };
 
 
-// =========================
+// ======================================
 // MOVE STOP
-// =========================
+// ======================================
 
 window.moveStopToPosition =
 async function(stopId) {
@@ -1079,7 +1051,7 @@ async function(stopId) {
     stop.color =
         ROUTE_COLORS[
             newRoute
-        ] || "gray";
+        ];
 
     let insertIndex = 0;
 
@@ -1119,43 +1091,23 @@ async function(stopId) {
 
     if (oldRoute !== newRoute) {
 
-        if (
-            !movedStops[
-                stop.postcode
-            ]
-        ) {
+        movedStops[
+            stop.postcode
+        ] = {
 
-            movedStops[
-                stop.postcode
-            ] = {
+            postcode:
+                stop.postcode,
 
-                postcode:
-                    stop.postcode,
+            originalRoute:
+                oldRoute,
 
-                originalRoute:
-                    oldRoute,
+            finalRoute:
+                newRoute,
 
-                finalRoute:
-                    newRoute,
-
-                movedAt:
-                    new Date()
-                    .toLocaleString()
-            };
-
-        } else {
-
-            movedStops[
-                stop.postcode
-            ].finalRoute =
-                newRoute;
-
-            movedStops[
-                stop.postcode
-            ].movedAt =
+            movedAt:
                 new Date()
-                .toLocaleString();
-        }
+                .toLocaleString()
+        };
     }
 
     await renderMap();
@@ -1164,9 +1116,9 @@ async function(stopId) {
 };
 
 
-// =========================
+// ======================================
 // SIDEBAR
-// =========================
+// ======================================
 
 function renderSidebar() {
 
@@ -1205,13 +1157,10 @@ function renderSidebar() {
                     'div'
                 );
 
-            card.className =
-                'route-card';
-
             card.style.background =
                 ROUTE_COLORS[
                     route
-                ] || "#1f2937";
+                ];
 
             card.style.color =
                 "white";
@@ -1264,21 +1213,9 @@ function renderSidebar() {
 }
 
 
-// =========================
-// REBALANCE
-// =========================
-
-function rebalanceRoutes() {
-
-    alert(
-        "Rebalance currently disabled."
-    );
-}
-
-
-// =========================
+// ======================================
 // EXPORT
-// =========================
+// ======================================
 
 function exportRoutes() {
 
