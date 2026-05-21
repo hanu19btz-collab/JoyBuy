@@ -131,7 +131,14 @@ const depotSelector =
     document.getElementById(
         'depotSelector'
     );
+// ======================================
+// BUTTON EVENTS
+// ======================================
 
+exportBtn.addEventListener(
+    'click',
+    exportRoutes
+);
 
 // ======================================
 // NORMALIZE ROUTE
