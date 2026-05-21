@@ -1214,95 +1214,111 @@ function renderSidebar() {
 
 
 // ======================================
-// EXPORT
+// EXPORT ROUTES
 // ======================================
 
 function exportRoutes() {
 
-    const workbook =
-        XLSX.utils.book_new();
+    try {
 
-    const uniqueRoutes = [
+        const workbook =
+            XLSX.utils.book_new();
 
-        "Route 1",
-        "Route 2",
-        "Route 3",
-        "Route 4",
-        "Route 5",
-        "Route 6"
-    ];
+        const uniqueRoutes = [
 
-    uniqueRoutes.forEach(
-        route => {
+            "Route 1",
+            "Route 2",
+            "Route 3",
+            "Route 4",
+            "Route 5",
+            "Route 6"
+        ];
 
-            const routeStops =
-                stopsData.filter(
-                    x => x.route === route
-                );
+        uniqueRoutes.forEach(
+            route => {
 
-            const exportData =
-                routeStops.map(
-                    (
-                        stop,
-                        index
-                    ) => ({
+                const routeStops =
+                    stopsData.filter(
+                        x => x.route === route
+                    );
 
-                        Stop_Number:
-                            index + 1,
+                if (
+                    routeStops.length === 0
+                ) {
+                    return;
+                }
 
-                        Postcode:
-                            stop.postcode,
+                const exportData =
+                    routeStops.map(
+                        (
+                            stop,
+                            index
+                        ) => ({
 
-                        Redelivery:
-                            stop.redelivery
-                                ? "YES"
-                                : "NO",
+                            Stop_Number:
+                                index + 1,
 
-                        Route:
-                            stop.route
-                    })
-                );
+                            Postcode:
+                                stop.postcode,
 
-            const worksheet =
-                XLSX.utils
-                .json_to_sheet(
-                    exportData
-                );
+                            Route:
+                                stop.route,
 
-            XLSX.utils
-                .book_append_sheet(
+                            Redelivery:
+                                stop.redelivery
+                                    ? "YES"
+                                    : "NO"
+                        })
+                    );
+
+                const worksheet =
+                    XLSX.utils.json_to_sheet(
+                        exportData
+                    );
+
+                XLSX.utils.book_append_sheet(
                     workbook,
                     worksheet,
-                    route.substring(0, 31)
+                    route
                 );
-        }
-    );
+            }
+        );
 
-    if (
-        Object.keys(
-            movedStops
-        ).length > 0
-    ) {
+        // MANUAL MOVES SHEET
+        if (
+            Object.keys(
+                movedStops
+            ).length > 0
+        ) {
 
-        const movesSheet =
-            XLSX.utils
-            .json_to_sheet(
-
+            const manualMovesData =
                 Object.values(
                     movedStops
-                )
-            );
+                );
 
-        XLSX.utils
-            .book_append_sheet(
+            const movesSheet =
+                XLSX.utils.json_to_sheet(
+                    manualMovesData
+                );
+
+            XLSX.utils.book_append_sheet(
                 workbook,
                 movesSheet,
-                'Manual_Moves'
+                "Manual_Moves"
             );
-    }
+        }
 
-    XLSX.writeFile(
-        workbook,
-        'Optimized_Routes.xlsx'
-    );
+        XLSX.writeFile(
+            workbook,
+            "Optimized_Routes.xlsx"
+        );
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert(
+            "Export failed."
+        );
+    }
 }
