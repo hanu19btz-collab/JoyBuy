@@ -16,9 +16,9 @@ const DEPOTS = {
 
         postcode: "LE11 5GX",
 
-        lat: 52.7806,
+        lat: 52.785239,
 
-        lng: -1.2215
+        lng: -1.20804
     },
 
     B66: {
@@ -48,6 +48,11 @@ const DEPOTS = {
     }
 };
 
+
+// ======================================
+// CURRENT DEPOT
+// ======================================
+
 let currentDepot =
     DEPOTS.LE11;
 
@@ -70,7 +75,7 @@ L.tileLayer(
 
 
 // ======================================
-// COLORS
+// ROUTE COLORS
 // ======================================
 
 const ROUTE_COLORS = {
@@ -94,7 +99,22 @@ const ROUTE_COLORS = {
 
 
 // ======================================
-// DATA
+// ROUTE VISIBILITY
+// ======================================
+
+const routeVisibility = {
+
+    "Route 1": true,
+    "Route 2": true,
+    "Route 3": true,
+    "Route 4": true,
+    "Route 5": true,
+    "Route 6": true
+};
+
+
+// ======================================
+// GLOBAL DATA
 // ======================================
 
 let stopsData = [];
@@ -131,6 +151,16 @@ const depotSelector =
     document.getElementById(
         'depotSelector'
     );
+
+
+// ======================================
+// EXPORT BUTTON
+// ======================================
+
+exportBtn.addEventListener(
+    'click',
+    exportRoutes
+);
 
 
 // ======================================
@@ -515,6 +545,14 @@ async function renderMap() {
         stop => {
 
             if (
+                !routeVisibility[
+                    stop.route
+                ]
+            ) {
+                return;
+            }
+
+            if (
                 !stop.lat ||
                 !stop.lng
             ) {
@@ -650,16 +688,12 @@ async function renderMap() {
         )
     ) {
 
-        const sampleStop =
-            stopsData.find(
-                x => x.route === route
-            );
-
         await drawRealRoute(
             route,
             stops,
-            sampleStop?.color ||
-            "gray"
+            ROUTE_COLORS[
+                route
+            ] || "gray"
         );
     }
 
@@ -679,6 +713,14 @@ async function drawRealRoute(
     stops,
     color
 ) {
+
+    if (
+        !routeVisibility[
+            routeName
+        ]
+    ) {
+        return;
+    }
 
     if (stops.length < 1) {
         return;
@@ -736,69 +778,69 @@ async function drawRealRoute(
                 }
             );
 
-            const data =
-                await response.json();
+        const data =
+            await response.json();
 
-            if (
-                !data.features ||
-                !data.features.length
-            ) {
-                return;
-            }
+        if (
+            !data.features ||
+            !data.features.length
+        ) {
+            return;
+        }
 
-            const routeLayer =
-                L.geoJSON(data, {
+        const routeLayer =
+            L.geoJSON(data, {
 
-                    style: {
+                style: {
 
-                        color: color,
+                    color: color,
 
-                        weight: 5,
+                    weight: 5,
 
-                        opacity: 0.8
-                    }
+                    opacity: 0.8
+                }
 
-                }).addTo(map);
+            }).addTo(map);
 
-            polylines.push(routeLayer);
+        polylines.push(routeLayer);
 
-            const summary =
-                data.features[0]
-                    .properties
-                    .summary;
+        const summary =
+            data.features[0]
+                .properties
+                .summary;
 
-            const distanceMiles =
-                (
-                    summary.distance *
-                    0.000621371
-                ).toFixed(1);
+        const distanceMiles =
+            (
+                summary.distance *
+                0.000621371
+            ).toFixed(1);
 
-            const totalMinutes =
-                Math.round(
-                    summary.duration / 60
-                );
+        const totalMinutes =
+            Math.round(
+                summary.duration / 60
+            );
 
-            const hours =
-                Math.floor(
-                    totalMinutes / 60
-                );
+        const hours =
+            Math.floor(
+                totalMinutes / 60
+            );
 
-            const minutes =
-                totalMinutes % 60;
+        const minutes =
+            totalMinutes % 60;
 
-            const formattedTime =
-                `${hours}h ${minutes}m`;
+        const formattedTime =
+            `${hours}h ${minutes}m`;
 
-            routeSummaries[
-                routeName
-            ] = {
+        routeSummaries[
+            routeName
+        ] = {
 
-                distance:
-                    distanceMiles,
+            distance:
+                distanceMiles,
 
-                duration:
-                    formattedTime
-            };
+            duration:
+                formattedTime
+        };
 
     } catch (err) {
 
@@ -1089,26 +1131,39 @@ async function(stopId) {
         stop
     );
 
-    if (oldRoute !== newRoute) {
+    movedStops[
+        stop.postcode
+    ] = {
 
-        movedStops[
-            stop.postcode
-        ] = {
+        postcode:
+            stop.postcode,
 
-            postcode:
-                stop.postcode,
+        originalRoute:
+            oldRoute,
 
-            originalRoute:
-                oldRoute,
+        finalRoute:
+            newRoute,
 
-            finalRoute:
-                newRoute,
+        movedAt:
+            new Date()
+            .toLocaleString()
+    };
 
-            movedAt:
-                new Date()
-                .toLocaleString()
-        };
-    }
+    await renderMap();
+
+    renderSidebar();
+};
+
+
+// ======================================
+// TOGGLE ROUTE
+// ======================================
+
+window.toggleRoute =
+async function(route) {
+
+    routeVisibility[route] =
+        !routeVisibility[route];
 
     await renderMap();
 
@@ -1183,11 +1238,32 @@ function renderSidebar() {
             card.innerHTML = `
 
                 <div style="
-                    font-size:18px;
-                    font-weight:bold;
-                    margin-bottom:8px;
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    margin-bottom:10px;
                 ">
-                    ${route}
+
+                    <div style="
+                        font-size:18px;
+                        font-weight:bold;
+                    ">
+                        ${route}
+                    </div>
+
+                    <input
+                        type="checkbox"
+                        ${routeVisibility[route] ? 'checked' : ''}
+                        onchange="
+                            toggleRoute('${route}')
+                        "
+                        style="
+                            width:20px;
+                            height:20px;
+                            cursor:pointer;
+                        "
+                    >
+
                 </div>
 
                 <div>
@@ -1214,7 +1290,7 @@ function renderSidebar() {
 
 
 // ======================================
-// EXPORT
+// EXPORT ROUTES
 // ======================================
 
 function exportRoutes() {
@@ -1239,6 +1315,12 @@ function exportRoutes() {
                 stopsData.filter(
                     x => x.route === route
                 );
+
+            if (
+                routeStops.length === 0
+            ) {
+                return;
+            }
 
             const exportData =
                 routeStops.map(
@@ -1306,3 +1388,10 @@ function exportRoutes() {
         'Optimized_Routes.xlsx'
     );
 }
+
+
+// ======================================
+// INITIAL SIDEBAR
+// ======================================
+
+renderSidebar();
