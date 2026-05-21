@@ -262,25 +262,46 @@ uploadBtn.addEventListener(
                 await response.json();
 
             stopsData.forEach(
-    stop => {
+                stop => {
 
-        stop.id =
-            crypto.randomUUID();
+                    stop.id =
+                        crypto.randomUUID();
 
-        stop.redelivery =
-            false;
+                    stop.redelivery =
+                        false;
 
-        stop.route =
-            normalizeRouteName(
-                stop.route
+                    stop.route =
+                        normalizeRouteName(
+                            stop.route
+                        );
+
+                    stop.color =
+                        ROUTE_COLORS[
+                            stop.route
+                        ] || "gray";
+                }
             );
 
-        stop.color =
-            ROUTE_COLORS[
-                stop.route
-            ] || "gray";
+            await renderMap();
+
+            renderSidebar();
+
+        } catch (err) {
+
+            console.error(err);
+
+            alert(
+                "Upload error."
+            );
+        }
+
+        uploadBtn.innerText =
+            "Generate Routes";
+
+        uploadBtn.disabled = false;
     }
 );
+
 
 // ======================================
 // ADD STOP
@@ -1169,27 +1190,11 @@ function renderSidebar() {
             card.innerHTML = `
 
                 <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
+                    font-size:18px;
+                    font-weight:bold;
                     margin-bottom:8px;
                 ">
-
-                    <div style="
-                        font-size:18px;
-                        font-weight:bold;
-                    ">
-                        ${route}
-                    </div>
-
-                    <input
-                        type="checkbox"
-                        ${routeVisibility[route] ? 'checked' : ''}
-                        onchange="
-                            toggleRoute('${route}')
-                        "
-                    >
-
+                    ${route}
                 </div>
 
                 <div>
@@ -1213,35 +1218,6 @@ function renderSidebar() {
         }
     );
 }
-// ======================================
-// ROUTE VISIBILITY
-// ======================================
-
-const routeVisibility = {
-
-    "Route 1": true,
-    "Route 2": true,
-    "Route 3": true,
-    "Route 4": true,
-    "Route 5": true,
-    "Route 6": true
-};
-
-
-// ======================================
-// TOGGLE ROUTE
-// ======================================
-
-window.toggleRoute =
-async function(route) {
-
-    routeVisibility[route] =
-        !routeVisibility[route];
-
-    await renderMap();
-
-    renderSidebar();
-};
 
 
 // ======================================
