@@ -16,9 +16,9 @@ const DEPOTS = {
 
         postcode: "LE11 5GX",
 
-        lat: 52.785239,
+        lat: 52.7806,
 
-        lng: -1.20804
+        lng: -1.2215
     },
 
     B66: {
@@ -47,11 +47,6 @@ const DEPOTS = {
         lng: -0.4200
     }
 };
-
-
-// ======================================
-// CURRENT DEPOT
-// ======================================
 
 let currentDepot =
     DEPOTS.LE11;
@@ -99,29 +94,6 @@ const ROUTE_COLORS = {
 
 
 // ======================================
-// ROUTE VISIBILITY
-// ======================================
-
-const routeVisibility = {
-
-    "Route 1": true,
-    "Route 2": true,
-    "Route 3": true,
-    "Route 4": true,
-    "Route 5": true,
-    "Route 6": true
-};
-
-
-// ======================================
-// SESSION STORAGE
-// ======================================
-
-const SESSION_STORAGE_KEY =
-    "joybuy_saved_sessions";
-
-
-// ======================================
 // DATA
 // ======================================
 
@@ -159,26 +131,6 @@ const depotSelector =
     document.getElementById(
         'depotSelector'
     );
-
-const saveSessionBtn =
-    document.getElementById(
-        'saveSessionBtn'
-    );
-
-
-// ======================================
-// BUTTON EVENTS
-// ======================================
-
-exportBtn.addEventListener(
-    'click',
-    exportRoutes
-);
-
-saveSessionBtn.addEventListener(
-    'click',
-    saveCurrentSession
-);
 
 
 // ======================================
@@ -563,14 +515,6 @@ async function renderMap() {
         stop => {
 
             if (
-                !routeVisibility[
-                    stop.route
-                ]
-            ) {
-                return;
-            }
-
-            if (
                 !stop.lat ||
                 !stop.lng
             ) {
@@ -661,6 +605,20 @@ async function renderMap() {
                     { icon }
                 ).addTo(map);
 
+            marker.bindPopup(
+                createPopup(stop.id)
+            );
+
+            marker.on(
+                'popupopen',
+                () => {
+
+                    updatePositionOptions(
+                        stop.id
+                    );
+                }
+            );
+
             markers.push(marker);
 
             bounds.push([
@@ -692,12 +650,16 @@ async function renderMap() {
         )
     ) {
 
+        const sampleStop =
+            stopsData.find(
+                x => x.route === route
+            );
+
         await drawRealRoute(
             route,
             stops,
-            ROUTE_COLORS[
-                route
-            ] || "gray"
+            sampleStop?.color ||
+            "gray"
         );
     }
 
@@ -717,14 +679,6 @@ async function drawRealRoute(
     stops,
     color
 ) {
-
-    if (
-        !routeVisibility[
-            routeName
-        ]
-    ) {
-        return;
-    }
 
     if (stops.length < 1) {
         return;
@@ -782,69 +736,69 @@ async function drawRealRoute(
                 }
             );
 
-        const data =
-            await response.json();
+            const data =
+                await response.json();
 
-        if (
-            !data.features ||
-            !data.features.length
-        ) {
-            return;
-        }
+            if (
+                !data.features ||
+                !data.features.length
+            ) {
+                return;
+            }
 
-        const routeLayer =
-            L.geoJSON(data, {
+            const routeLayer =
+                L.geoJSON(data, {
 
-                style: {
+                    style: {
 
-                    color: color,
+                        color: color,
 
-                    weight: 5,
+                        weight: 5,
 
-                    opacity: 0.8
-                }
+                        opacity: 0.8
+                    }
 
-            }).addTo(map);
+                }).addTo(map);
 
-        polylines.push(routeLayer);
+            polylines.push(routeLayer);
 
-        const summary =
-            data.features[0]
-                .properties
-                .summary;
+            const summary =
+                data.features[0]
+                    .properties
+                    .summary;
 
-        const distanceMiles =
-            (
-                summary.distance *
-                0.000621371
-            ).toFixed(1);
+            const distanceMiles =
+                (
+                    summary.distance *
+                    0.000621371
+                ).toFixed(1);
 
-        const totalMinutes =
-            Math.round(
-                summary.duration / 60
-            );
+            const totalMinutes =
+                Math.round(
+                    summary.duration / 60
+                );
 
-        const hours =
-            Math.floor(
-                totalMinutes / 60
-            );
+            const hours =
+                Math.floor(
+                    totalMinutes / 60
+                );
 
-        const minutes =
-            totalMinutes % 60;
+            const minutes =
+                totalMinutes % 60;
 
-        const formattedTime =
-            `${hours}h ${minutes}m`;
+            const formattedTime =
+                `${hours}h ${minutes}m`;
 
-        routeSummaries[
-            routeName
-        ] = {
+            routeSummaries[
+                routeName
+            ] = {
 
-            distance:
-                distanceMiles,
+                distance:
+                    distanceMiles,
 
-            duration:
-                formattedTime
-        };
+                duration:
+                    formattedTime
+            };
 
     } catch (err) {
 
@@ -854,14 +808,307 @@ async function drawRealRoute(
 
 
 // ======================================
-// TOGGLE ROUTE
+// POPUP
 // ======================================
 
-window.toggleRoute =
-async function(route) {
+function createPopup(stopId) {
 
-    routeVisibility[route] =
-        !routeVisibility[route];
+    const stop =
+        stopsData.find(
+            x => x.id === stopId
+        );
+
+    return `
+        <div style="
+            min-width:240px;
+        ">
+
+            <b style="
+                font-size:20px;
+            ">
+                ${stop.postcode}
+            </b>
+
+            <br><br>
+
+            Current Route:
+            <b>${stop.route}</b>
+
+            <br><br>
+
+            <label>
+                Route
+            </label>
+
+            <br>
+
+            <select
+                id="routeSelect${stopId}"
+                onchange="
+                    updatePositionOptions('${stopId}')
+                "
+                style="
+                    width:100%;
+                    margin-top:4px;
+                    margin-bottom:12px;
+                    padding:6px;
+                "
+            >
+
+                ${getRouteOptions(
+                    stop.route
+                )}
+
+            </select>
+
+            <label>
+                Position
+            </label>
+
+            <br>
+
+            <select
+                id="positionSelect${stopId}"
+                style="
+                    width:100%;
+                    margin-top:4px;
+                    margin-bottom:14px;
+                    padding:6px;
+                "
+            >
+            </select>
+
+            <button
+                onclick="
+                    moveStopToPosition('${stopId}')
+                "
+                style="
+                    width:100%;
+                    padding:10px;
+                    background:#4f5fe3;
+                    color:white;
+                    border:none;
+                    border-radius:8px;
+                    font-weight:bold;
+                    cursor:pointer;
+                "
+            >
+                Move Stop
+            </button>
+
+        </div>
+    `;
+}
+
+
+// ======================================
+// ROUTE OPTIONS
+// ======================================
+
+function getRouteOptions(
+    currentRoute
+) {
+
+    const fixedRoutes = [
+
+        "Route 1",
+        "Route 2",
+        "Route 3",
+        "Route 4",
+        "Route 5",
+        "Route 6"
+    ];
+
+    return fixedRoutes.map(
+        route => `
+            <option
+                value="${route}"
+                ${route === currentRoute ? 'selected' : ''}
+            >
+                ${route}
+            </option>
+        `
+    ).join('');
+}
+
+
+// ======================================
+// POSITION OPTIONS
+// ======================================
+
+window.updatePositionOptions =
+function(stopId) {
+
+    const routeSelect =
+        document.getElementById(
+            `routeSelect${stopId}`
+        );
+
+    const positionSelect =
+        document.getElementById(
+            `positionSelect${stopId}`
+        );
+
+    const selectedRoute =
+        routeSelect.value;
+
+    const routeStops =
+        stopsData.filter(
+            x => x.route === selectedRoute
+        );
+
+    positionSelect.innerHTML = '';
+
+    let currentPosition = 1;
+
+    for (
+        let i = 0;
+        i < routeStops.length;
+        i++
+    ) {
+
+        if (
+            routeStops[i].id === stopId
+        ) {
+
+            currentPosition =
+                i + 1;
+
+            break;
+        }
+    }
+
+    for (
+        let i = 1;
+        i <= routeStops.length + 1;
+        i++
+    ) {
+
+        positionSelect.innerHTML += `
+
+            <option
+                value="${i}"
+                ${i === currentPosition ? 'selected' : ''}
+            >
+                ${i}
+            </option>
+
+        `;
+    }
+};
+
+
+// ======================================
+// MOVE STOP
+// ======================================
+
+window.moveStopToPosition =
+async function(stopId) {
+
+    const routeSelect =
+        document.getElementById(
+            `routeSelect${stopId}`
+        );
+
+    const positionSelect =
+        document.getElementById(
+            `positionSelect${stopId}`
+        );
+
+    let newRoute =
+        routeSelect.value;
+
+    newRoute =
+        normalizeRouteName(
+            newRoute
+        );
+
+    const newPosition =
+        parseInt(
+            positionSelect.value
+        ) - 1;
+
+    const stop =
+        stopsData.find(
+            x => x.id === stopId
+        );
+
+    const oldRoute =
+        stop.route;
+
+    const currentIndex =
+        stopsData.findIndex(
+            x => x.id === stopId
+        );
+
+    stopsData.splice(
+        currentIndex,
+        1
+    );
+
+    stop.route = newRoute;
+
+    stop.color =
+        ROUTE_COLORS[
+            newRoute
+        ];
+
+    let insertIndex = 0;
+
+    let count = 0;
+
+    for (
+        let i = 0;
+        i < stopsData.length;
+        i++
+    ) {
+
+        if (
+            stopsData[i].route ===
+            newRoute
+        ) {
+
+            if (
+                count === newPosition
+            ) {
+
+                insertIndex = i;
+
+                break;
+            }
+
+            count++;
+        }
+
+        insertIndex = i + 1;
+    }
+
+    stopsData.splice(
+        insertIndex,
+        0,
+        stop
+    );
+
+    if (oldRoute !== newRoute) {
+
+        movedStops[
+            stop.postcode
+        ] = {
+
+            postcode:
+                stop.postcode,
+
+            originalRoute:
+                oldRoute,
+
+            finalRoute:
+                newRoute,
+
+            movedAt:
+                new Date()
+                .toLocaleString()
+        };
+    }
 
     await renderMap();
 
@@ -927,30 +1174,20 @@ function renderSidebar() {
             card.style.borderRadius =
                 "12px";
 
+            card.style.border =
+                "3px solid rgba(255,255,255,0.2)";
+
+            card.style.boxShadow =
+                "0 2px 8px rgba(0,0,0,0.25)";
+
             card.innerHTML = `
 
                 <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    margin-bottom:10px;
+                    font-size:18px;
+                    font-weight:bold;
+                    margin-bottom:8px;
                 ">
-
-                    <div style="
-                        font-size:18px;
-                        font-weight:bold;
-                    ">
-                        ${route}
-                    </div>
-
-                    <input
-                        type="checkbox"
-                        ${routeVisibility[route] ? 'checked' : ''}
-                        onchange="
-                            toggleRoute('${route}')
-                        "
-                    >
-
+                    ${route}
                 </div>
 
                 <div>
@@ -973,8 +1210,6 @@ function renderSidebar() {
             );
         }
     );
-
-    renderSavedSessions();
 }
 
 
@@ -1004,12 +1239,6 @@ function exportRoutes() {
                 stopsData.filter(
                     x => x.route === route
                 );
-
-            if (
-                routeStops.length === 0
-            ) {
-                return;
-            }
 
             const exportData =
                 routeStops.map(
@@ -1049,264 +1278,31 @@ function exportRoutes() {
         }
     );
 
+    if (
+        Object.keys(
+            movedStops
+        ).length > 0
+    ) {
+
+        const movesSheet =
+            XLSX.utils
+            .json_to_sheet(
+
+                Object.values(
+                    movedStops
+                )
+            );
+
+        XLSX.utils
+            .book_append_sheet(
+                workbook,
+                movesSheet,
+                'Manual_Moves'
+            );
+    }
+
     XLSX.writeFile(
         workbook,
         'Optimized_Routes.xlsx'
     );
 }
-
-
-// ======================================
-// SAVE SESSION
-// ======================================
-
-function saveCurrentSession() {
-
-    const existingSessions =
-        JSON.parse(
-            localStorage.getItem(
-                SESSION_STORAGE_KEY
-            ) || "[]"
-        );
-
-    const sessionData = {
-
-        id:
-            crypto.randomUUID(),
-
-        createdAt:
-            new Date().toLocaleString(),
-
-        depot:
-            currentDepot.id,
-
-        stopsData:
-            stopsData,
-
-        movedStops:
-            movedStops
-    };
-
-    existingSessions.unshift(
-        sessionData
-    );
-
-    const limitedSessions =
-        existingSessions.slice(0, 3);
-
-    localStorage.setItem(
-        SESSION_STORAGE_KEY,
-        JSON.stringify(
-            limitedSessions
-        )
-    );
-
-    renderSavedSessions();
-
-    alert(
-        "Session saved successfully."
-    );
-}
-
-
-// ======================================
-// LOAD SESSION
-// ======================================
-
-window.loadSession =
-async function(sessionId) {
-
-    const sessions =
-        JSON.parse(
-            localStorage.getItem(
-                SESSION_STORAGE_KEY
-            ) || "[]"
-        );
-
-    const session =
-        sessions.find(
-            x => x.id === sessionId
-        );
-
-    if (!session) {
-        return;
-    }
-
-    currentDepot =
-        DEPOTS[
-            session.depot
-        ];
-
-    depotSelector.value =
-        session.depot;
-
-    stopsData =
-        session.stopsData || [];
-
-    movedStops =
-        session.movedStops || {};
-
-    await renderMap();
-
-    renderSidebar();
-};
-
-
-// ======================================
-// DELETE SESSION
-// ======================================
-
-window.deleteSession =
-function(sessionId) {
-
-    const sessions =
-        JSON.parse(
-            localStorage.getItem(
-                SESSION_STORAGE_KEY
-            ) || "[]"
-        );
-
-    const filtered =
-        sessions.filter(
-            x => x.id !== sessionId
-        );
-
-    localStorage.setItem(
-        SESSION_STORAGE_KEY,
-        JSON.stringify(filtered)
-    );
-
-    renderSavedSessions();
-};
-
-
-// ======================================
-// RENDER SESSIONS
-// ======================================
-
-function renderSavedSessions() {
-
-    const container =
-        document.getElementById(
-            "savedSessions"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = "";
-
-    const sessions =
-        JSON.parse(
-            localStorage.getItem(
-                SESSION_STORAGE_KEY
-            ) || "[]"
-        );
-
-    if (sessions.length === 0) {
-
-        container.innerHTML = `
-            <div style="
-                color:#999;
-                font-size:13px;
-            ">
-                No saved sessions
-            </div>
-        `;
-
-        return;
-    }
-
-    sessions.forEach(
-        session => {
-
-            const div =
-                document.createElement(
-                    "div"
-                );
-
-            div.style.background =
-                "#1f2937";
-
-            div.style.color =
-                "white";
-
-            div.style.padding =
-                "10px";
-
-            div.style.marginBottom =
-                "10px";
-
-            div.style.borderRadius =
-                "10px";
-
-            div.innerHTML = `
-
-                <div style="
-                    font-weight:bold;
-                    margin-bottom:6px;
-                ">
-                    ${DEPOTS[session.depot]?.name || session.depot}
-                </div>
-
-                <div style="
-                    font-size:12px;
-                    opacity:0.8;
-                    margin-bottom:10px;
-                ">
-                    ${session.createdAt}
-                </div>
-
-                <div style="
-                    display:flex;
-                    gap:8px;
-                ">
-
-                    <button
-                        onclick="loadSession('${session.id}')"
-                        style="
-                            flex:1;
-                            padding:8px;
-                            background:#2563eb;
-                            color:white;
-                            border:none;
-                            border-radius:6px;
-                            cursor:pointer;
-                        "
-                    >
-                        Load
-                    </button>
-
-                    <button
-                        onclick="deleteSession('${session.id}')"
-                        style="
-                            flex:1;
-                            padding:8px;
-                            background:#dc2626;
-                            color:white;
-                            border:none;
-                            border-radius:6px;
-                            cursor:pointer;
-                        "
-                    >
-                        Delete
-                    </button>
-
-                </div>
-            `;
-
-            container.appendChild(
-                div
-            );
-        }
-    );
-}
-
-
-// ======================================
-// INITIALIZE
-// ======================================
-
-renderSidebar();
-renderSavedSessions();
