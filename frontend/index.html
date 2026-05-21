@@ -31,12 +31,6 @@
 
     <div class="controls">
 
-        <input
-            type="file"
-            id="excelFile"
-            accept=".xlsx,.xls"
-        >
-
         <select id="depotSelector">
 
             <option value="LE11">
@@ -46,33 +40,25 @@
             <option value="B66">
                 Birmingham Depot
             </option>
+
             <option value="LTN">
-    Luton Depot
-</option>
+                Luton Depot
+            </option>
 
         </select>
 
-        <select id="driverCount">
+        <input
+            type="file"
+            id="excelFile"
+            accept=".xlsx,.xls"
+        >
 
-            <option value="1">1 Driver</option>
-            <option value="2">2 Drivers</option>
-            <option value="3">3 Drivers</option>
-            <option value="4">4 Drivers</option>
-            <option value="5">5 Drivers</option>
-            <option value="6" selected>6 Drivers</option>
-
-        </select>
-
-        <button id="rebalanceBtn">
-            Rebalance
+        <button id="addStopBtn">
+            Add Stop
         </button>
 
         <button id="uploadBtn">
             Generate Routes
-        </button>
-
-        <button id="addStopBtn">
-            Add Stop
         </button>
 
         <button id="exportBtn">
@@ -90,6 +76,29 @@
         <h2>Routes</h2>
 
         <div id="routeStats"></div>
+
+        <h2 style="margin-top:30px;">
+            Saved Sessions
+        </h2>
+
+        <div id="savedSessions"></div>
+
+        <button
+            id="saveSessionBtn"
+            style="
+                width:100%;
+                margin-top:12px;
+                padding:12px;
+                background:#16a34a;
+                color:white;
+                border:none;
+                border-radius:10px;
+                font-weight:bold;
+                cursor:pointer;
+            "
+        >
+            Save Current Session
+        </button>
 
     </div>
 
