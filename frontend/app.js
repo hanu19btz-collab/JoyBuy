@@ -264,35 +264,23 @@ uploadBtn.addEventListener(
             stopsData.forEach(
     stop => {
 
-        if (
-            !routeVisibility[
+        stop.id =
+            crypto.randomUUID();
+
+        stop.redelivery =
+            false;
+
+        stop.route =
+            normalizeRouteName(
                 stop.route
-            ]
-        ) {
-            return;
-        }
-            
-
-            await renderMap();
-
-            renderSidebar();
-
-        } catch (err) {
-
-            console.error(err);
-
-            alert(
-                "Upload error."
             );
-        }
 
-        uploadBtn.innerText =
-            "Generate Routes";
-
-        uploadBtn.disabled = false;
+        stop.color =
+            ROUTE_COLORS[
+                stop.route
+            ] || "gray";
     }
 );
-
 
 // ======================================
 // ADD STOP
