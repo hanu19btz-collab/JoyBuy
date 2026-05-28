@@ -197,7 +197,7 @@ uploadBtn.addEventListener(
 
             const response =
     await fetch(
-        `http://127.0.0.1:8000/upload?depot=${currentDepot.id}`,
+        `https://joybuy-backend1.onrender.com/upload?depot=${currentDepot.id}`,
                     {
                         method: 'POST',
                         body: formData
