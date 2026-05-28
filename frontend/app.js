@@ -1,57 +1,11 @@
 const ORS_API_KEY =
-    "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU3Y2IzMWI1Y2M0YTQ5YzJiMjFhNmVlNmI0YjBiNzYxIiwiaCI6Im11cm11cjY0In0=";
+    "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImJiNjA4OTQ4OWI2MTQzMmJhOTUzYWJjY2M5ODNlMzdiIiwiaCI6Im11cm11cjY0In0=";
 
 
-// ======================================
-// DEPOTS
-// ======================================
 
-const DEPOTS = {
-
-    LE11: {
-
-        id: "LE11",
-
-        name: "Leicester Depot",
-
-        postcode: "LE11 5GX",
-
-        lat: 52.7806,
-
-        lng: -1.2215
-    },
-
-    B66: {
-
-        id: "B66",
-
-        name: "Birmingham Depot",
-
-        postcode: "B66 1BT",
-
-        lat: 52.4906,
-
-        lng: -1.9705
-    },
-
-    LTN: {
-
-        id: "LTN",
-
-        name: "Luton Depot",
-
-        postcode: "LU1 1AA",
-
-        lat: 51.8787,
-
-        lng: -0.4200
-    }
-};
 
 let currentDepot =
     DEPOTS.LE11;
-
-
 // ======================================
 // MAP
 // ======================================
@@ -68,31 +22,6 @@ L.tileLayer(
     }
 ).addTo(map);
 
-
-// ======================================
-// COLORS
-// ======================================
-
-const ROUTE_COLORS = {
-
-    "Route 1": "#ef4444",
-
-    "Route 2": "#3b82f6",
-
-    "Route 3": "#22c55e",
-
-    "Route 4": "#f59e0b",
-
-    "Route 5": "#a855f7",
-
-    "Route 6": "#92400e",
-
-    "Unassigned": "gray",
-
-    "Invalid": "black"
-};
-
-
 // ======================================
 // DATA
 // ======================================
@@ -103,10 +32,14 @@ let markers = [];
 
 let polylines = [];
 
+let routeLayers = {};
+
+let routeCache = {};
+
 let routeSummaries = {};
 
 let movedStops = {};
-
+let hiddenRoutes = [];
 
 // ======================================
 // ELEMENTS
@@ -131,6 +64,15 @@ const depotSelector =
     document.getElementById(
         'depotSelector'
     );
+    const saveSessionBtn =
+    document.getElementById(
+        'saveSessionBtn'
+    );
+
+const savedSessionsContainer =
+    document.getElementById(
+        'savedSessions'
+    );
 // ======================================
 // BUTTON EVENTS
 // ======================================
@@ -139,7 +81,10 @@ exportBtn.addEventListener(
     'click',
     exportRoutes
 );
-
+saveSessionBtn.addEventListener(
+    'click',
+    saveCurrentSession
+);
 // ======================================
 // NORMALIZE ROUTE
 // ======================================
@@ -236,6 +181,7 @@ uploadBtn.addEventListener(
         uploadBtn.disabled = true;
 
         clearMap();
+        routeCache = {};
 
         movedStops = {};
 
@@ -250,8 +196,8 @@ uploadBtn.addEventListener(
         try {
 
             const response =
-                await fetch(
-                    `https://joybuy-backend.onrender.com/upload?depot=${currentDepot.id}`,
+    await fetch(
+        `http://127.0.0.1:8000/upload?depot=${currentDepot.id}`,
                     {
                         method: 'POST',
                         body: formData
@@ -371,7 +317,7 @@ addStopBtn.addEventListener(
 
             const data =
                 await response.json();
-
+console.log(data);
             if (
                 data.status !== 200
             ) {
@@ -448,6 +394,9 @@ addStopBtn.addEventListener(
                 0,
                 newStop
             );
+            delete routeCache[
+    selectedRoute
+];
 
             await renderMap();
 
@@ -519,14 +468,25 @@ async function renderMap() {
     ]);
 
     stopsData.forEach(
-        stop => {
+    stop => {
 
-            if (
-                !stop.lat ||
-                !stop.lng
-            ) {
-                return;
-            }
+        if (
+            !stop.lat ||
+            !stop.lng
+        ) {
+            return;
+        }
+        if (
+    hiddenRoutes.includes(
+    normalizeRouteName(
+        stop.route
+    )
+)
+) {
+    return;
+}
+
+       
 
             const routeStops =
                 stopsData.filter(
@@ -604,13 +564,16 @@ async function renderMap() {
                 });
 
             const marker =
-                L.marker(
-                    [
-                        stop.lat,
-                        stop.lng
-                    ],
-                    { icon }
-                ).addTo(map);
+    L.marker(
+        [
+            stop.lat,
+            stop.lng
+        ],
+        { icon }
+    ).addTo(map);
+
+marker.routeName =
+    stop.route;
 
             marker.bindPopup(
                 createPopup(stop.id)
@@ -656,6 +619,7 @@ async function renderMap() {
             groupedRoutes
         )
     ) {
+     
 
         const sampleStop =
             stopsData.find(
@@ -692,6 +656,41 @@ async function drawRealRoute(
     }
 
     try {
+        const cacheKey =
+    JSON.stringify(
+
+        stops.map(
+            x => x.id
+        )
+    );
+
+const cached =
+    routeCache[
+        routeName
+    ];
+
+if (
+
+    cached &&
+
+    cached.key ===
+    cacheKey
+
+) {
+
+    routeLayers[
+        routeName
+    ] =
+        cached.layer;
+
+    cached.layer.addTo(map);
+
+    polylines.push(
+        cached.layer
+    );
+
+    return;
+}
 
         const coordinates = [
 
@@ -769,6 +768,19 @@ async function drawRealRoute(
 
             polylines.push(routeLayer);
 
+            routeLayers[routeName] =
+    routeLayer;
+    routeCache[
+    routeName
+] = {
+
+    key:
+        cacheKey,
+
+    layer:
+        routeLayer
+};
+
             const summary =
                 data.features[0]
                     .properties
@@ -840,7 +852,38 @@ function createPopup(stopId) {
 
             Current Route:
             <b>${stop.route}</b>
+<br><br>
 
+Parcels:
+<b>${stop.parcels || 0}</b>
+
+<br><br>
+
+<div style="
+    max-height:120px;
+    overflow-y:auto;
+    background:#f3f4f6;
+    padding:8px;
+    border-radius:8px;
+    font-size:12px;
+">
+
+    <b>JDW Numbers</b>
+
+    <br><br>
+
+    ${
+        stop.jdwNumbers &&
+        stop.jdwNumbers.length > 0
+
+        ? stop.jdwNumbers.join('<br>')
+
+        : 'No JDW Numbers'
+    }
+
+</div>
+
+<br><br>
             <br><br>
 
             <label>
@@ -1098,24 +1141,76 @@ async function(stopId) {
 
     if (oldRoute !== newRoute) {
 
-        movedStops[
-            stop.postcode
-        ] = {
+        if (
+    movedStops[
+        stop.postcode
+    ]
+) {
 
-            postcode:
-                stop.postcode,
+    movedStops[
+        stop.postcode
+    ].finalRoute =
+        newRoute;
 
-            originalRoute:
-                oldRoute,
+    movedStops[
+        stop.postcode
+    ].movedAt =
+        new Date()
+        .toLocaleString();
 
-            finalRoute:
-                newRoute,
+} else {
 
-            movedAt:
-                new Date()
-                .toLocaleString()
-        };
+    movedStops[
+        stop.postcode
+    ] = {
+
+        postcode:
+            stop.postcode,
+
+        originalRoute:
+            oldRoute,
+
+        finalRoute:
+            newRoute,
+
+        parcels:
+            stop.parcels || 0,
+
+        jdwNumbers:
+            stop.jdwNumbers || [],
+
+        movedAt:
+            new Date()
+            .toLocaleString()
+    };
+}
     }
+    delete routeCache[
+    oldRoute
+];
+
+delete routeCache[
+    newRoute
+];
+    if (routeLayers[oldRoute]) {
+
+    map.removeLayer(
+        routeLayers[oldRoute]
+    );
+
+    delete routeLayers[oldRoute];
+}
+
+if (routeLayers[newRoute]) {
+
+    map.removeLayer(
+        routeLayers[newRoute]
+    );
+
+    delete routeLayers[newRoute];
+}
+
+
 
     await renderMap();
 
@@ -1207,9 +1302,30 @@ function renderSidebar() {
                 </div>
 
                 <div>
-                    Time:
-                    ${stats?.duration || '-'}
-                </div>
+    Time:
+    ${stats?.duration || '-'}
+</div>
+
+<br><br>
+
+<label style="
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:10px;
+">
+
+    <input
+    type="checkbox"
+    ${hiddenRoutes.includes(route) ? '' : 'checked'}
+    onchange="
+        toggleRoute('${route}')
+    "
+>
+
+    Visible
+
+</label>
             `;
 
             routeStats.appendChild(
@@ -1262,20 +1378,32 @@ function exportRoutes() {
                             index
                         ) => ({
 
-                            Stop_Number:
-                                index + 1,
+    Stop_Number:
+        index + 1,
 
-                            Postcode:
-                                stop.postcode,
+    Postcode:
+        stop.postcode,
 
-                            Route:
-                                stop.route,
+    Route:
+        stop.route,
 
-                            Redelivery:
-                                stop.redelivery
-                                    ? "YES"
-                                    : "NO"
-                        })
+    Parcels:
+        stop.parcels || 0,
+
+    JDW_Numbers:
+        Array.isArray(
+            stop.jdwNumbers
+        )
+
+        ? stop.jdwNumbers.join(", ")
+
+        : "",
+
+    Redelivery:
+        stop.redelivery
+            ? "YES"
+            : "NO"
+})
                     );
 
                 const worksheet =
@@ -1302,11 +1430,40 @@ function exportRoutes() {
                 Object.values(
                     movedStops
                 );
+                const formattedMovesData =
+    manualMovesData.map(
+        move => ({
+
+            Postcode:
+                move.postcode,
+
+            Move_From:
+                move.originalRoute,
+
+            Move_To:
+                move.finalRoute,
+
+            Parcels:
+                move.parcels || 0,
+
+            JDW_Numbers:
+                Array.isArray(
+                    move.jdwNumbers
+                )
+
+                ? move.jdwNumbers.join(", ")
+
+                : "",
+
+            Moved_At:
+                move.movedAt
+        })
+    );
 
             const movesSheet =
-                XLSX.utils.json_to_sheet(
-                    manualMovesData
-                );
+    XLSX.utils.json_to_sheet(
+        formattedMovesData
+    );
 
             XLSX.utils.book_append_sheet(
                 workbook,
@@ -1328,4 +1485,313 @@ function exportRoutes() {
             "Export failed."
         );
     }
+}
+// ======================================
+// SAVE SESSION
+// ======================================
+
+function saveCurrentSession() {
+
+    if (stopsData.length === 0) {
+
+        alert("No routes loaded.");
+
+        return;
+    }
+
+    const sessionName =
+        prompt(
+            "Enter session name"
+        );
+
+    if (!sessionName) {
+        return;
+    }
+
+    const existingSessions =
+        JSON.parse(
+            localStorage.getItem(
+                'joybuy_sessions'
+            ) || '[]'
+        );
+
+    const sessionData = {
+
+        id:
+            crypto.randomUUID(),
+
+        name:
+            sessionName,
+
+        depot:
+            currentDepot.id,
+
+        createdAt:
+            new Date().toLocaleString(),
+
+        stops:
+            stopsData,
+
+        movedStops:
+            movedStops,
+hiddenRoutes:
+    hiddenRoutes
+    };
+
+    existingSessions.push(
+        sessionData
+    );
+
+    localStorage.setItem(
+        'joybuy_sessions',
+        JSON.stringify(
+            existingSessions
+        )
+    );
+
+    renderSavedSessions();
+
+    alert(
+        "Session saved."
+    );
+}
+// ======================================
+// RENDER SAVED SESSIONS
+// ======================================
+
+function renderSavedSessions() {
+
+    const sessions =
+        JSON.parse(
+            localStorage.getItem(
+                'joybuy_sessions'
+            ) || '[]'
+        );
+
+    savedSessionsContainer.innerHTML = '';
+
+    if (sessions.length === 0) {
+
+        savedSessionsContainer.innerHTML =
+            `
+            <div style="
+                color:gray;
+                font-size:14px;
+            ">
+                No saved sessions
+            </div>
+            `;
+
+        return;
+    }
+
+    sessions.forEach(
+        session => {
+
+            const div =
+                document.createElement(
+                    'div'
+                );
+
+            div.style.background =
+                'white';
+
+            div.style.padding =
+                '12px';
+
+            div.style.borderRadius =
+                '10px';
+
+            div.style.marginBottom =
+                '10px';
+
+            div.style.boxShadow =
+                '0 1px 4px rgba(0,0,0,0.1)';
+
+            div.innerHTML = `
+
+                <div style="
+                    font-weight:bold;
+                    margin-bottom:6px;
+                ">
+                    ${session.name}
+                </div>
+
+                <div style="
+                    font-size:13px;
+                    color:gray;
+                    margin-bottom:10px;
+                ">
+                    ${session.createdAt}
+                </div>
+
+                <button
+                    onclick="loadSession('${session.id}')"
+                    style="
+                        margin-right:6px;
+                        background:#2563eb;
+                    "
+                >
+                    Load
+                </button>
+
+                <button
+                    onclick="deleteSession('${session.id}')"
+                    style="
+                        background:#dc2626;
+                    "
+                >
+                    Delete
+                </button>
+            `;
+
+            savedSessionsContainer.appendChild(
+                div
+            );
+        }
+    );
+}
+// ======================================
+// LOAD SESSION
+// ======================================
+
+window.loadSession =
+async function(sessionId) {
+
+    const sessions =
+        JSON.parse(
+            localStorage.getItem(
+                'joybuy_sessions'
+            ) || '[]'
+        );
+
+    const session =
+        sessions.find(
+            x => x.id === sessionId
+        );
+
+    if (!session) {
+        return;
+    }
+
+    currentDepot =
+        DEPOTS[
+            session.depot
+        ];
+
+    depotSelector.value =
+        session.depot;
+
+    stopsData =
+        session.stops;
+        routeCache = {};
+
+    movedStops =
+        session.movedStops || {};
+hiddenRoutes =
+    session.hiddenRoutes || [];
+    await renderMap();
+
+    renderSidebar();
+}
+// ======================================
+// DELETE SESSION
+// ======================================
+
+window.deleteSession =
+function(sessionId) {
+
+    const sessions =
+        JSON.parse(
+            localStorage.getItem(
+                'joybuy_sessions'
+            ) || '[]'
+        );
+
+    const filtered =
+        sessions.filter(
+            x => x.id !== sessionId
+        );
+
+    localStorage.setItem(
+        'joybuy_sessions',
+        JSON.stringify(filtered)
+    );
+
+    renderSavedSessions();
+}
+renderSavedSessions();
+// ======================================
+// TOGGLE ROUTE VISIBILITY
+// ======================================
+
+window.toggleRoute =
+function(route) {
+
+    route =
+        normalizeRouteName(route);
+
+    const isHidden =
+        hiddenRoutes.includes(route);
+
+    if (isHidden) {
+
+        hiddenRoutes =
+            hiddenRoutes.filter(
+                x => x !== route
+            );
+
+    } else {
+
+        hiddenRoutes.push(route);
+    }
+
+    markers.forEach(marker => {
+
+        if (
+            marker.routeName === route
+        ) {
+
+            if (isHidden) {
+
+                map.addLayer(marker);
+
+            } else {
+
+                map.removeLayer(marker);
+            }
+        }
+    });
+
+    if (routeLayers[route]) {
+
+    if (isHidden) {
+
+        if (
+            !map.hasLayer(
+                routeLayers[route]
+            )
+        ) {
+
+            routeLayers[
+                route
+            ].addTo(map);
+        }
+
+    } else {
+
+        if (
+            map.hasLayer(
+                routeLayers[route]
+            )
+        ) {
+
+            map.removeLayer(
+                routeLayers[route]
+            );
+        }
+    }
+}
+
+    renderSidebar();
 }

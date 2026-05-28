@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from data.depots import DEPOTS, ROUTE_COLORS
 
 import pandas as pd
 import requests
@@ -26,239 +27,7 @@ app.add_middleware(
 POSTCODE_API = "https://api.postcodes.io/postcodes/"
 
 
-# =====================================
-# DEPOTS
-# =====================================
 
-DEPOTS = {
-
-    # =====================================
-    # LEICESTER
-    # =====================================
-
-    "LE11": {
-
-        "name": "Leicester Depot",
-
-        "lat": 52.7806,
-
-        "lng": -1.2215,
-
-        "routes": {
-
-            "Route 1": [
-                "NG1", "NG2", "NG3",
-                "NG4", "NG5", "NG12"
-            ],
-
-            "Route 2": [
-                "NG6", "NG7", "NG8",
-                "NG9", "NG10", "NG11"
-            ],
-
-            "Route 3": [
-                "LE2", "LE3", "LE6",
-                "LE9", "LE19", "CV13"
-            ],
-
-            "Route 4": [
-                "LE1", "LE4", "LE5",
-                "LE7", "LE8", "LE13",
-                "LE14", "LE15",
-                "LE16", "LE18"
-            ],
-
-            "Route 5": [
-                "LE11", "LE12",
-                "LE65", "LE67",
-                "DE12", "DE73",
-                "DE74", "DE24",
-                "DE23", "DE22",
-                "DE21", "DE1",
-                "DE3"
-            ]
-        }
-    },
-
-    # =====================================
-    # BIRMINGHAM
-    # =====================================
-
-    "B66": {
-
-        "name": "Birmingham Depot",
-
-        "lat": 52.4906,
-
-        "lng": -1.9705,
-
-        "routes": {
-
-            "Route 1": [
-                "B1", "B2", "B3",
-                "B4", "B5", "B6"
-            ],
-
-            "Route 2": [
-                "B7", "B8", "B9",
-                "B10", "B11", "B12"
-            ],
-
-            "Route 3": [
-                "B13", "B14", "B15",
-                "B16", "B17", "B18"
-            ],
-
-            "Route 4": [
-                "B19", "B20", "B21",
-                "B23", "B24", "B25"
-            ],
-
-            "Route 5": [
-                "B26", "B27", "B28",
-                "B29", "B30", "B31"
-            ],
-
-            "Route 6": [
-                "B32", "B33", "B34",
-                "B35", "B36", "B37"
-            ]
-        }
-    },
-
-    # =====================================
-# LUTON
-# =====================================
-
-"LTN": {
-
-    "name": "Luton Depot",
-
-    "lat": 51.8787,
-
-    "lng": -0.4200,
-
-    "routes": {
-
-        "Route 1": [
-
-            "LU6",
-            "LU7",
-
-            "MK1",
-            "MK11",
-            "MK12",
-            "MK13",
-            "MK18",
-            "MK19",
-
-            "MK3",
-            "MK4",
-            "MK5",
-            "MK8",
-
-            "HP6",
-            "HP21",
-            "HP5",
-            "HP19",
-            "HP22",
-            "HP16",
-            "HP20",
-            "HP23",
-            "HP7"
-        ],
-
-        "Route 2": [
-
-            "MK43",
-
-            "MK16",
-            "MK10",
-            "MK14",
-            "MK15",
-            "MK17",
-
-            "MK7",
-            "MK2",
-            "MK6",
-            "MK9",
-
-            "MK46",
-
-            "MK42",
-            "MK40",
-            "MK44",
-            "MK45",
-            "MK41",
-
-            "SG5",
-            "SG15",
-            "SG16"
-        ],
-
-        "Route 3": [
-
-            "SG9",
-            "SG11",
-            "SG12",
-            "SG13",
-            "SG14",
-
-            "AL10",
-            "AL6",
-            "AL8",
-            "AL7",
-            "AL9",
-            "AL4",
-            "AL2",
-            "AL1",
-            "AL5",
-            "AL3",
-
-            "LU1",
-            "LU2",
-            "LU3",
-            "LU4",
-            "LU5",
-
-            "HP1",
-            "HP2",
-            "HP3",
-            "HP4",
-
-            "SG2",
-            "SG3",
-            "SG1",
-            "SG4",
-            "SG6"
-        ]
-    }
-}
-}
-
-
-# =====================================
-# COLORS
-# =====================================
-
-ROUTE_COLORS = {
-
-    "Route 1": "red",
-
-    "Route 2": "blue",
-
-    "Route 3": "green",
-
-    "Route 4": "orange",
-
-    "Route 5": "purple",
-
-    "Route 6": "brown",
-
-    "Unassigned": "gray",
-
-    "Invalid": "black"
-}
 
 
 # =====================================
@@ -345,7 +114,7 @@ async def upload_excel(
         ignore_index=True
     )
 
-    locations = []
+    grouped_locations = {}
 
     for _, row in df.iterrows():
 
@@ -375,18 +144,6 @@ async def upload_excel(
                     break
 
         if not postcode:
-
-            for col in df.columns:
-
-                value = row.get(col)
-
-                if pd.notna(value):
-
-                    postcode = str(value).upper().strip()
-
-                    break
-
-        if not postcode:
             continue
 
         if postcode == "NAN":
@@ -396,6 +153,38 @@ async def upload_excel(
             postcode,
             depot_data["routes"]
         )
+
+        # =========================
+        # JDW NUMBER
+        # =========================
+
+        jdw_number = ""
+
+        possible_jdw_columns = [
+
+            "JDW",
+            "JDW Number",
+            "JDW_Number",
+            "Tracking Number",
+            "Tracking",
+            "jdw"
+        ]
+
+        for col in possible_jdw_columns:
+
+            if col in df.columns:
+
+                value = row.get(col)
+
+                if pd.notna(value):
+
+                    jdw_number = str(value).strip()
+
+                    break
+
+        # =========================
+        # POSTCODE LOOKUP
+        # =========================
 
         try:
 
@@ -408,51 +197,66 @@ async def upload_excel(
                 f"{POSTCODE_API}{clean_postcode}"
             )
 
-            if response.status_code == 200:
+            if response.status_code != 200:
+                continue
 
-                data = response.json()
+            data = response.json()
 
-                if data["status"] == 200:
+            if data["status"] != 200:
+                continue
 
-                    result = data["result"]
+            result = data["result"]
 
-                    locations.append({
+            # =========================
+            # CREATE POSTCODE GROUP
+            # =========================
 
-                        "name": postcode,
+            if postcode not in grouped_locations:
 
-                        "postcode": postcode,
+                grouped_locations[postcode] = {
 
-                        "lat": result["latitude"],
+                    "name": postcode,
 
-                        "lng": result["longitude"],
+                    "postcode": postcode,
 
-                        "route": route,
+                    "lat": result["latitude"],
 
-                        "color": ROUTE_COLORS.get(
-                            route,
-                            "gray"
-                        )
-                    })
+                    "lng": result["longitude"],
 
-                else:
+                    "route": route,
 
-                    locations.append({
+                    "parcels": 0,
 
-                        "name": postcode,
+                    "jdwNumbers": [],
 
-                        "postcode": postcode,
+                    "color": ROUTE_COLORS.get(
+                        route,
+                        "gray"
+                    )
+                }
 
-                        "lat": None,
+            # =========================
+            # ADD PARCEL
+            # =========================
 
-                        "lng": None,
+            grouped_locations[postcode][
+                "parcels"
+            ] += 1
 
-                        "route": "Invalid",
+            # =========================
+            # ADD JDW NUMBER
+            # =========================
 
-                        "color": "black"
-                    })
+            if jdw_number:
+
+                grouped_locations[postcode][
+                    "jdwNumbers"
+                ].append(jdw_number)
 
         except Exception as e:
 
             print(e)
 
-    return locations
+    return list(
+        grouped_locations.values()
+)
