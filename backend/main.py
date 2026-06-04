@@ -1,16 +1,25 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from data.depots import DEPOTS, ROUTE_COLORS
-
+import json
 import pandas as pd
 import requests
 import io
 
-app = FastAPI()
+# =====================================
+# LOAD CONFIG — single source of truth
+# =====================================
+
+with open("data/depots.json", "r", encoding="utf-8") as f:
+    _config = json.load(f)
+
+DEPOTS       = _config["depots"]
+ROUTE_COLORS = _config["colors"]
 
 # =====================================
-# CORS
+# APP
 # =====================================
+
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,43 +29,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =====================================
-# POSTCODE API
-# =====================================
-
 POSTCODE_API = "https://api.postcodes.io/postcodes/"
-
-
-
 
 
 # =====================================
 # ROUTE DETECTION
 # =====================================
 
-def get_route(postcode, depot_routes):
+def get_route(postcode: str, depot_routes: dict) -> str:
 
     postcode = postcode.upper().strip()
-
     district = postcode.split(" ")[0]
-
-    district = ''.join([
-        c for c in district
-        if c.isalnum()
-    ])
+    district = ''.join(c for c in district if c.isalnum())
 
     for route_name, prefixes in depot_routes.items():
-
-        sorted_prefixes = sorted(
-            prefixes,
-            key=len,
-            reverse=True
-        )
-
-        for prefix in sorted_prefixes:
-
+        # Longest prefix first so e.g. "MK43" matches before "MK4"
+        for prefix in sorted(prefixes, key=len, reverse=True):
             if district == prefix:
-
                 return route_name
 
     return "Unassigned"
@@ -68,10 +57,25 @@ def get_route(postcode, depot_routes):
 
 @app.get("/")
 def root():
+    return {"status": "online"}
 
-    return {
-        "status": "online"
-    }
+
+# =====================================
+# DEPOTS LIST
+# =====================================
+
+@app.get("/depots")
+def get_depots():
+    return [
+        {
+            "id":       depot_id,
+            "name":     depot["name"],
+            "postcode": depot.get("postcode", ""),
+            "lat":      depot["lat"],
+            "lng":      depot["lng"],
+        }
+        for depot_id, depot in DEPOTS.items()
+    ]
 
 
 # =====================================
@@ -83,119 +87,61 @@ async def upload_excel(
     depot: str,
     file: UploadFile = File(...)
 ):
-
     depot_data = DEPOTS.get(depot)
 
     if not depot_data:
-
-        return {
-            "error": "Invalid depot"
-        }
+        return {"error": "Invalid depot"}
 
     content = await file.read()
+    excel_file = pd.ExcelFile(io.BytesIO(content))
 
-    excel_file = pd.ExcelFile(
-        io.BytesIO(content)
-    )
-
-    all_dfs = []
-
-    for sheet in excel_file.sheet_names:
-
-        temp_df = pd.read_excel(
-            excel_file,
-            sheet_name=sheet
-        )
-
-        all_dfs.append(temp_df)
-
-    df = pd.concat(
-        all_dfs,
-        ignore_index=True
-    )
+    all_dfs = [
+        pd.read_excel(excel_file, sheet_name=sheet)
+        for sheet in excel_file.sheet_names
+    ]
+    df = pd.concat(all_dfs, ignore_index=True)
 
     grouped_locations = {}
 
+    POSTCODE_COLUMNS = [
+        "Postcode", "postcode", "POSTCODE",
+        "Post Code", "POST CODE", "Postal Code", "Address",
+    ]
+
+    JDW_COLUMNS = [
+        "JDW", "JDW Number", "JDW_Number",
+        "Tracking Number", "Tracking", "jdw",
+    ]
+
     for _, row in df.iterrows():
 
+        # --- find postcode ---
         postcode = None
-
-        possible_columns = [
-
-            "Postcode",
-            "postcode",
-            "POSTCODE",
-            "Post Code",
-            "POST CODE",
-            "Postal Code",
-            "Address"
-        ]
-
-        for col in possible_columns:
-
+        for col in POSTCODE_COLUMNS:
             if col in df.columns:
-
                 value = row.get(col)
-
                 if pd.notna(value):
-
                     postcode = str(value).upper().strip()
-
                     break
 
-        if not postcode:
+        if not postcode or postcode == "NAN":
             continue
 
-        if postcode == "NAN":
-            continue
+        route = get_route(postcode, depot_data["routes"])
 
-        route = get_route(
-            postcode,
-            depot_data["routes"]
-        )
-
-        # =========================
-        # JDW NUMBER
-        # =========================
-
+        # --- find JDW number ---
         jdw_number = ""
-
-        possible_jdw_columns = [
-
-            "JDW",
-            "JDW Number",
-            "JDW_Number",
-            "Tracking Number",
-            "Tracking",
-            "jdw"
-        ]
-
-        for col in possible_jdw_columns:
-
+        for col in JDW_COLUMNS:
             if col in df.columns:
-
                 value = row.get(col)
-
                 if pd.notna(value):
-
                     jdw_number = str(value).strip()
-
                     break
 
-        # =========================
-        # POSTCODE LOOKUP
-        # =========================
-
+        # --- geocode ---
         try:
-
-            clean_postcode = postcode.replace(
-                " ",
-                ""
-            )
-
-            response = requests.get(
-                f"{POSTCODE_API}{clean_postcode}"
-            )
+            clean_postcode = postcode.replace(" ", "")
+            response = requests.get(f"{POSTCODE_API}{clean_postcode}")
 
             if response.status_code != 200:
                 continue
@@ -207,56 +153,24 @@ async def upload_excel(
 
             result = data["result"]
 
-            # =========================
-            # CREATE POSTCODE GROUP
-            # =========================
-
             if postcode not in grouped_locations:
-
                 grouped_locations[postcode] = {
-
-                    "name": postcode,
-
-                    "postcode": postcode,
-
-                    "lat": result["latitude"],
-
-                    "lng": result["longitude"],
-
-                    "route": route,
-
-                    "parcels": 0,
-
+                    "name":       postcode,
+                    "postcode":   postcode,
+                    "lat":        result["latitude"],
+                    "lng":        result["longitude"],
+                    "route":      route,
+                    "parcels":    0,
                     "jdwNumbers": [],
-
-                    "color": ROUTE_COLORS.get(
-                        route,
-                        "gray"
-                    )
+                    "color":      ROUTE_COLORS.get(route, "gray"),
                 }
 
-            # =========================
-            # ADD PARCEL
-            # =========================
-
-            grouped_locations[postcode][
-                "parcels"
-            ] += 1
-
-            # =========================
-            # ADD JDW NUMBER
-            # =========================
+            grouped_locations[postcode]["parcels"] += 1
 
             if jdw_number:
-
-                grouped_locations[postcode][
-                    "jdwNumbers"
-                ].append(jdw_number)
+                grouped_locations[postcode]["jdwNumbers"].append(jdw_number)
 
         except Exception as e:
-
             print(e)
 
-    return list(
-        grouped_locations.values()
-)
+    return list(grouped_locations.values())

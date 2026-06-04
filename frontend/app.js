@@ -4,8 +4,9 @@ const ORS_API_KEY =
 
 
 
+// Default to the first depot defined in depots.json
 let currentDepot =
-    DEPOTS.LE11;
+    DEPOTS[Object.keys(DEPOTS)[0]];
 // ======================================
 // MAP
 // ======================================
@@ -89,46 +90,84 @@ saveSessionBtn.addEventListener(
 // NORMALIZE ROUTE
 // ======================================
 
-function normalizeRouteName(
-    route
-) {
+function normalizeRouteName(route) {
 
-    if (!route) {
-        return "Route 1";
+    if (!route) return "Route 1";
+
+    const clean = route.trim().toLowerCase();
+
+    // Combined routes first (must check before single numbers)
+    if (clean.includes("1") && clean.includes("2")) return "Route 1&2";
+    if (clean.includes("3") && clean.includes("4")) return "Route 3&4";
+
+    // Exact match against all known route names
+    const known = [
+        "Route 1", "Route 2", "Route 3", "Route 4",
+        "Route 5", "Route 6", "Route 7", "Route 8",
+        "Route 9", "Route 10", "Route 1&2", "Route 3&4"
+    ];
+
+    for (const name of known) {
+        if (clean === name.toLowerCase()) return name;
     }
 
-    const clean =
-        route
-        .trim()
-        .toLowerCase();
-
-    if (clean.includes("1")) {
-        return "Route 1";
-    }
-
-    if (clean.includes("2")) {
-        return "Route 2";
-    }
-
-    if (clean.includes("3")) {
-        return "Route 3";
-    }
-
-    if (clean.includes("4")) {
-        return "Route 4";
-    }
-
-    if (clean.includes("5")) {
-        return "Route 5";
-    }
-
-    if (clean.includes("6")) {
-        return "Route 6";
-    }
+    // Fallback: match by number — check "10" before "1"
+    if (clean.includes("10")) return "Route 10";
+    if (clean.includes("1"))  return "Route 1";
+    if (clean.includes("2"))  return "Route 2";
+    if (clean.includes("3"))  return "Route 3";
+    if (clean.includes("4"))  return "Route 4";
+    if (clean.includes("5"))  return "Route 5";
+    if (clean.includes("6"))  return "Route 6";
+    if (clean.includes("7"))  return "Route 7";
+    if (clean.includes("8"))  return "Route 8";
+    if (clean.includes("9"))  return "Route 9";
 
     return "Route 1";
 }
 
+
+// ======================================
+// GET ROUTES FOR CURRENT DEPOT
+// ======================================
+
+// All routes available for selection (Add Stop / Move Stop dropdowns)
+// Always Route 1-10, plus any special combined routes this depot defines
+function getDepotRoutes() {
+    const base = [
+        "Route 1","Route 2","Route 3","Route 4","Route 5",
+        "Route 6","Route 7","Route 8","Route 9","Route 10"
+    ];
+    const special = currentDepot.routes
+        ? Object.keys(currentDepot.routes).filter(r => r.includes("&"))
+        : [];
+    return [...base, ...special];
+}
+
+// Routes to show in sidebar:
+// - Routes that have at least 1 stop loaded, OR
+// - Routes defined in depot config (so they appear even before upload)
+// Special routes only shown if depot defines them
+function getSidebarRoutes() {
+    const depotDefined = currentDepot.routes
+        ? Object.keys(currentDepot.routes)
+        : [];
+    const withStops = [...new Set(stopsData.map(s => s.route))].filter(
+        r => r && r !== "Unassigned" && r !== "Invalid"
+    );
+    // Base routes 1-10 always in sidebar
+    const base = [
+        "Route 1","Route 2","Route 3","Route 4","Route 5",
+        "Route 6","Route 7","Route 8","Route 9","Route 10"
+    ];
+    // Special routes: only if depot defines them OR stops exist on them
+    const special = [
+        ...depotDefined.filter(r => r.includes("&")),
+        ...withStops.filter(r => r.includes("&"))
+    ];
+    const allSpecial = [...new Set(special)];
+    return [...base, ...allSpecial];
+}
 
 // ======================================
 // DEPOT CHANGE
@@ -197,7 +236,7 @@ uploadBtn.addEventListener(
 
             const response =
     await fetch(
-        `https://joybuy-backend1.onrender.com/upload?depot=${currentDepot.id}`,
+        `http://localhost:8000/upload?depot=${currentDepot.id}`,
                     {
                         method: 'POST',
                         body: formData
@@ -280,7 +319,7 @@ addStopBtn.addEventListener(
 
         let selectedRoute =
             prompt(
-                "Choose Route:\n\nRoute 1\nRoute 2\nRoute 3\nRoute 4\nRoute 5\nRoute 6"
+                "Choose Route:\n\n" + getDepotRoutes().join("\n")
             );
 
         selectedRoute =
@@ -955,21 +994,8 @@ Parcels:
 // ROUTE OPTIONS
 // ======================================
 
-function getRouteOptions(
-    currentRoute
-) {
-
-    const fixedRoutes = [
-
-        "Route 1",
-        "Route 2",
-        "Route 3",
-        "Route 4",
-        "Route 5",
-        "Route 6"
-    ];
-
-    return fixedRoutes.map(
+function getRouteOptions(currentRoute) {
+    return getDepotRoutes().map(
         route => `
             <option
                 value="${route}"
@@ -1231,15 +1257,7 @@ function renderSidebar() {
 
     routeStats.innerHTML = '';
 
-    const uniqueRoutes = [
-
-        "Route 1",
-        "Route 2",
-        "Route 3",
-        "Route 4",
-        "Route 5",
-        "Route 6"
-    ];
+    const uniqueRoutes = getSidebarRoutes();
 
     uniqueRoutes.forEach(
         route => {
@@ -1248,6 +1266,9 @@ function renderSidebar() {
                 stopsData.filter(
                     x => x.route === route
                 ).length;
+
+            // Only show route card if it has stops
+            if (count === 0) return;
 
             const stats =
                 routeSummaries[
@@ -1262,7 +1283,7 @@ function renderSidebar() {
             card.style.background =
                 ROUTE_COLORS[
                     route
-                ];
+                ] || "#6b7280";
 
             card.style.color =
                 "white";
@@ -1347,15 +1368,7 @@ function exportRoutes() {
         const workbook =
             XLSX.utils.book_new();
 
-        const uniqueRoutes = [
-
-            "Route 1",
-            "Route 2",
-            "Route 3",
-            "Route 4",
-            "Route 5",
-            "Route 6"
-        ];
+        const uniqueRoutes = getSidebarRoutes();
 
         uniqueRoutes.forEach(
             route => {
