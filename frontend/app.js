@@ -251,7 +251,7 @@ uploadBtn.addEventListener(
 
             const response =
     await fetch(
-         `https://joybuy-route-planner-dev.onrender.com/upload?depot=${currentDepot.id}`,
+         `https://joybuy.onrender.com/upload?depot=${currentDepot.id}`,
                     {
                         method: 'POST',
                         body: formData

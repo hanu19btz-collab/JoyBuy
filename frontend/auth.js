@@ -147,7 +147,7 @@ async function _renderAdminSessions(filter) {
     }
 }
 
-const BACKEND = 'https://joybuy-route-planner-dev.onrender.com';
+const BACKEND = 'https://joybuy.onrender.com';
 
 async function _getToken() {
     const { data: { session } } = await _supabase.auth.getSession();
