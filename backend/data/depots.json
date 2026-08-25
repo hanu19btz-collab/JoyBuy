@@ -300,6 +300,61 @@
           "CV7"
         ]
       }
+    },
+    "E16": {
+      "name": "Stratford Depot",
+      "postcode": "E16 4TG",
+      "lat": 51.5232,
+      "lng": 0.0001,
+      "routes": {
+        "Route 1": [
+          "E2",
+          "E3"
+        ],
+        "Route 2": [
+          "E1"
+        ],
+        "Route 3": [
+          "E1W"
+        ],
+        "Route 4": [
+          "E14"
+        ],
+        "Route 6": [
+          "E8",
+          "E9"
+        ],
+        "Route 7": [
+          "E16"
+        ],
+        "Route 8": [
+          "EC1A",
+          "EC1M",
+          "EC1N",
+          "EC1R",
+          "EC1V",
+          "EC1Y"
+        ],
+        "Route 9": [
+          "EC2A",
+          "EC2M",
+          "EC2N",
+          "EC2R",
+          "EC2V",
+          "EC2Y",
+          "EC3A",
+          "EC3M",
+          "EC3N",
+          "EC3R",
+          "EC3V",
+          "EC4A",
+          "EC4M",
+          "EC4N",
+          "EC4R",
+          "EC4V",
+          "EC4Y"
+        ]
+      }
     }
   }
 }
