@@ -786,31 +786,16 @@ if (
             currentDepot.lat
         ]);
 
-        const response =
+             const response =
             await fetch(
-                'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
+                'https://joybuy.onrender.com/route-geometry',
                 {
-
                     method: 'POST',
-
                     headers: {
-
-                        'Authorization':
-                            ORS_API_KEY,
-
-                        'Content-Type':
-                            'application/json'
+                        'Content-Type': 'application/json'
                     },
-
                     body: JSON.stringify({
-
-                        coordinates:
-                            coordinates,
-
-                        instructions: false,
-
-                        preference:
-                            "recommended"
+                        coordinates: coordinates
                     })
                 }
             );
@@ -968,21 +953,19 @@ async function getDistanceMatrix(nodes) {
 
     try {
 
-        const response =
+                const response =
             await fetch(
-                'https://api.openrouteservice.org/v2/matrix/driving-car',
+                'https://joybuy.onrender.com/route-matrix',
                 {
                     method: 'POST',
                     headers: {
-                        'Authorization': ORS_API_KEY,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         locations:
                             nodes.map(
                                 n => [n.lng, n.lat]
-                            ),
-                        metrics: ['distance']
+                            )
                     })
                 }
             );
