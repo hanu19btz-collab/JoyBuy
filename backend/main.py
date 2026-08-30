@@ -317,7 +317,7 @@ def route_geometry(body: dict):
         raise HTTPException(400, "Need at least 2 coordinates")
 
     r = requests.post(
-        "https://api.openrouteservice.org/v2/directions/driving-car/geojson",
+        "https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson",
         json={
             "coordinates": coordinates,
             "instructions": False,
@@ -345,7 +345,7 @@ def route_matrix(body: dict):
         raise HTTPException(400, "Need at least 2 locations")
 
     r = requests.post(
-        "https://api.openrouteservice.org/v2/matrix/driving-car",
+        "https://api.heigit.org/openrouteservice/v2/matrix/driving-car",
         json={
             "locations": locations,
             "metrics": ["distance"],
