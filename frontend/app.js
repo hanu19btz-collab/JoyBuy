@@ -96,6 +96,15 @@ exportBtn.addEventListener(
     'click',
     exportRoutes
 );
+const exportGeoJsonBtn =
+    document.getElementById(
+        'exportGeoJsonBtn'
+    );
+
+exportGeoJsonBtn.addEventListener(
+    'click',
+    exportGeoJSON
+);
 saveSessionBtn.addEventListener(
     'click',
     saveCurrentSession
@@ -2059,6 +2068,58 @@ function exportRoutes() {
 
         alert(
             "Export failed."
+        );
+    }
+}
+// ======================================
+// EXPORT GEOJSON
+// ======================================
+
+function exportGeoJSON() {
+
+    try {
+
+        const features = stopsData
+            .filter(stop => stop.lat && stop.lng)
+            .map(stop => ({
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [stop.lng, stop.lat]
+                },
+                properties: {
+                    postcode: stop.postcode,
+                    route: stop.route,
+                    parcels: stop.parcels || 0,
+                    redelivery: stop.redelivery || false
+                }
+            }));
+
+        const geojson = {
+            type: "FeatureCollection",
+            features: features
+        };
+
+        const blob = new Blob(
+            [JSON.stringify(geojson, null, 2)],
+            { type: "application/geo+json" }
+        );
+
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "stops.geojson";
+        a.click();
+
+        URL.revokeObjectURL(url);
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert(
+            "GeoJSON export failed."
         );
     }
 }
