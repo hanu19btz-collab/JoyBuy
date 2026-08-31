@@ -55,6 +55,7 @@ let routeSummaries = {};
 
 let movedStops = {};
 let hiddenRoutes = [];
+let stopMinutesPerRoute = {};
 
 // ======================================
 // ELEMENTS
@@ -875,7 +876,7 @@ if (
             const formattedTime =
                 `${hours}h ${minutes}m`;
 
-            routeSummaries[
+                        routeSummaries[
                 routeName
             ] = {
 
@@ -883,7 +884,10 @@ if (
                     distanceMiles,
 
                 duration:
-                    formattedTime
+                    formattedTime,
+
+                durationMinutes:
+                    totalMinutes
             };
 
     } catch (err) {
@@ -1607,7 +1611,33 @@ if (routeLayers[newRoute]) {
     renderSidebar();
 };
 
+// ======================================
+// STOP TIME SETTINGS (per route)
+// ======================================
 
+function getStopMinutes(route) {
+    return stopMinutesPerRoute[route] !== undefined
+        ? stopMinutesPerRoute[route]
+        : 3.5;
+}
+
+window.updateStopMinutes = function(route, value) {
+
+    const num = parseFloat(value);
+
+    stopMinutesPerRoute[route] =
+        isNaN(num) ? 3.5 : num;
+
+    renderSidebar();
+};
+
+function formatMinutes(totalMin) {
+
+    const h = Math.floor(totalMin / 60);
+    const m = Math.round(totalMin % 60);
+
+    return `${h}h ${m}m`;
+}
 // ======================================
 // SIDEBAR
 // ======================================
@@ -1692,9 +1722,44 @@ function renderSidebar() {
                     ${stats?.distance || '-'} miles
                 </div>
 
-                <div>
+                      <div>
     Time:
     ${stats?.duration || '-'}
+</div>
+
+<div style="margin-top:6px;">
+    Total Completion Time:
+    <b>${
+        stats?.durationMinutes !== undefined
+            ? formatMinutes(
+                stats.durationMinutes +
+                (count * getStopMinutes(route))
+              )
+            : '-'
+    }</b>
+</div>
+
+<div style="
+    margin-top:6px;
+    font-size:12px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+">
+    Min/stop:
+    <input
+        type="number"
+        step="0.1"
+        min="0"
+        value="${getStopMinutes(route)}"
+        onchange="updateStopMinutes('${route}', this.value)"
+        style="
+            width:55px;
+            padding:3px;
+            border-radius:4px;
+            border:none;
+            text-align:center;
+        ">
 </div>
 
 <br><br>
