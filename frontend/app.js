@@ -278,6 +278,9 @@ uploadBtn.addEventListener(
 
                     stop.redelivery =
                         false;
+                    
+                    stop.pickup =
+                        false;
 
                     stop.route =
                         normalizeRouteName(
@@ -329,17 +332,21 @@ addStopBtn.addEventListener(
             return;
         }
 
-        const stopType =
+                const stopType =
             prompt(
-                "Enter NORMAL or REDELIVERY"
+                "Tip stop:\nP = Pickup\nR = Redelivery\n(lasă gol pentru stop normal)"
             );
 
-        const isRedelivery =
-            stopType &&
+        const stopTypeClean =
             stopType
-                .trim()
-                .toUpperCase() ===
-            "REDELIVERY";
+                ? stopType.trim().toUpperCase()
+                : "";
+
+        const isPickup =
+            stopTypeClean === "P";
+
+        const isRedelivery =
+            stopTypeClean === "R";
 
         let selectedRoute =
             prompt(
@@ -417,8 +424,11 @@ console.log(data);
                         selectedRoute
                     ],
 
-                redelivery:
-                    isRedelivery
+                               redelivery:
+                    isRedelivery,
+
+                pickup:
+                    isPickup
             };
 
             let insertIndex = 0;
@@ -575,6 +585,7 @@ async function renderMap() {
                         ">
 
                             ${
+                                                            ${
                                 stop.redelivery
                                 ? `
                                 <div style="
@@ -594,6 +605,31 @@ async function renderMap() {
                                     z-index:999;
                                 ">
                                     R
+                                </div>
+                                `
+                                : ''
+                            }
+
+                            ${
+                                stop.pickup
+                                ? `
+                                <div style="
+                                    position:absolute;
+                                    top:-10px;
+                                    right:10px;
+                                    background:#2563eb;
+                                    color:white;
+                                    width:16px;
+                                    height:16px;
+                                    border-radius:50%;
+                                    font-size:11px;
+                                    font-weight:bold;
+                                    display:flex;
+                                    align-items:center;
+                                    justify-content:center;
+                                    z-index:999;
+                                ">
+                                    P
                                 </div>
                                 `
                                 : ''
@@ -2007,6 +2043,65 @@ function exportRoutes() {
 
         const uniqueRoutes = getSidebarRoutes();
 
+        // ======================================
+        // SUMMARY SHEET (Route / Parcels / Pickup / Redelivery / Total)
+        // ======================================
+
+        let totalParcels = 0;
+        let totalPickup = 0;
+        let totalRedelivery = 0;
+
+        const summaryRows =
+            uniqueRoutes.map(
+                route => {
+
+                    const routeStops =
+                        stopsData.filter(
+                            x => x.route === route
+                        );
+
+                    const parcels =
+                        routeStops
+                            .filter(s => !s.pickup && !s.redelivery)
+                            .reduce((sum, s) => sum + (s.parcels || 0), 0);
+
+                    const pickupCount =
+                        routeStops.filter(s => s.pickup).length;
+
+                    const redeliveryCount =
+                        routeStops.filter(s => s.redelivery).length;
+
+                    totalParcels += parcels;
+                    totalPickup += pickupCount;
+                    totalRedelivery += redeliveryCount;
+
+                    return {
+                        Route: route,
+                        Parcels: parcels,
+                        Pickup: pickupCount || "",
+                        Redelivery: redeliveryCount || "",
+                        Total: parcels + pickupCount + redeliveryCount
+                    };
+                }
+            ).filter(row => row.Total > 0);
+
+        summaryRows.push({
+            Route: "total",
+            Parcels: totalParcels,
+            Pickup: totalPickup || "",
+            Redelivery: totalRedelivery || "",
+            Total: totalParcels + totalPickup + totalRedelivery
+        });
+
+        const summarySheet =
+            XLSX.utils.json_to_sheet(summaryRows);
+
+        XLSX.utils.book_append_sheet(
+            workbook,
+            summarySheet,
+            "Summary"
+        );
+
         uniqueRoutes.forEach(
             route => {
 
@@ -2049,8 +2144,13 @@ function exportRoutes() {
 
         : "",
 
-    Redelivery:
+       Redelivery:
         stop.redelivery
+            ? "YES"
+            : "NO",
+
+    Pickup:
+        stop.pickup
             ? "YES"
             : "NO"
 })
@@ -2156,7 +2256,8 @@ function exportGeoJSON() {
                     postcode: stop.postcode,
                     route: stop.route,
                     parcels: stop.parcels || 0,
-                    redelivery: stop.redelivery || false
+                    redelivery: stop.redelivery || false,
+                    pickup: stop.pickup || false
                 }
             }));
 
