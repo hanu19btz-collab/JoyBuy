@@ -590,7 +590,7 @@ async function renderMap() {
                         ">
 
                             ${
-                                                            ${
+                                    
                                 stop.redelivery
                                 ? `
                                 <div style="
