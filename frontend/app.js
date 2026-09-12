@@ -116,9 +116,14 @@ saveSessionBtn.addEventListener(
 
 function normalizeRouteName(route) {
 
-    if (!route) return "Route 1";
+    if (!route) return "Unassigned";
 
     const clean = route.trim().toLowerCase();
+
+    if (clean === "unassigned") return "Unassigned";
+    if (clean === "invalid") return "Invalid";
+
+    // Combined routes first (must check before single numbers)
 
     // Combined routes first (must check before single numbers)
     if (clean.includes("1") && clean.includes("2")) return "Route 1&2";
@@ -145,9 +150,9 @@ function normalizeRouteName(route) {
     if (clean.includes("6"))  return "Route 6";
     if (clean.includes("7"))  return "Route 7";
     if (clean.includes("8"))  return "Route 8";
-    if (clean.includes("9"))  return "Route 9";
+        if (clean.includes("9"))  return "Route 9";
 
-    return "Route 1";
+    return "Unassigned";
 }
 
 
