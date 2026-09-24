@@ -164,14 +164,11 @@ function normalizeRouteName(route) {
 // All routes available for selection (Add Stop / Move Stop dropdowns)
 // Always Route 1-10, plus any special combined routes this depot defines
 function getDepotRoutes() {
-    const base = [
+    return [
         "Route 1","Route 2","Route 3","Route 4","Route 5",
-        "Route 6","Route 7","Route 8","Route 9","Route 10"
+        "Route 6","Route 7","Route 8","Route 9","Route 10",
+        "Route 11","Route 12","Route 13","Route 14","Route 15"
     ];
-    const special = currentDepot.routes
-        ? Object.keys(currentDepot.routes).filter(r => r.includes("&"))
-        : [];
-    return [...base, ...special];
 }
 
 // Routes to show in sidebar:
@@ -179,25 +176,13 @@ function getDepotRoutes() {
 // - Routes defined in depot config (so they appear even before upload)
 // Special routes only shown if depot defines them
 function getSidebarRoutes() {
-    const depotDefined = currentDepot.routes
-        ? Object.keys(currentDepot.routes)
-        : [];
-    const withStops = [...new Set(stopsData.map(s => s.route))].filter(
-        r => r && r !== "Unassigned" && r !== "Invalid"
-    );
-    // Base routes 1-10 always in sidebar
-    const base = [
+    return [
         "Route 1","Route 2","Route 3","Route 4","Route 5",
-        "Route 6","Route 7","Route 8","Route 9","Route 10"
+        "Route 6","Route 7","Route 8","Route 9","Route 10",
+        "Route 11","Route 12","Route 13","Route 14","Route 15"
     ];
-    // Special routes: only if depot defines them OR stops exist on them
-    const special = [
-        ...depotDefined.filter(r => r.includes("&")),
-        ...withStops.filter(r => r.includes("&"))
-    ];
-    const allSpecial = [...new Set(special)];
-    return [...base, ...allSpecial];
 }
+
 
 // ======================================
 // DEPOT CHANGE
