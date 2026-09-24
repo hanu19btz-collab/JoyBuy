@@ -1,4 +1,4 @@
-{
+{  
   "colors": {
     "Route 1": "#ef4444",
     "Route 2": "#3b82f6",
@@ -10,11 +10,15 @@
     "Route 8": "#84cc16",
     "Route 9": "#ec4899",
     "Route 10": "#f97316",
-    "Route 1&2": "#991b1b",
-    "Route 3&4": "#14532d",
+    "Route 11": "#14b8a6",
+    "Route 12": "#eab308",
+    "Route 13": "#6366f1",
+    "Route 14": "#f43f5e",
+    "Route 15": "#7c3aed",
     "Unassigned": "gray",
     "Invalid": "black"
   },
+
   "depots": {
     "LE11": {
       "name": "Leicester Depot",
