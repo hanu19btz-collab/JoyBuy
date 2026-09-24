@@ -123,24 +123,24 @@ function normalizeRouteName(route) {
     if (clean === "unassigned") return "Unassigned";
     if (clean === "invalid") return "Invalid";
 
-    // Combined routes first (must check before single numbers)
-
-    // Combined routes first (must check before single numbers)
-    if (clean.includes("1") && clean.includes("2")) return "Route 1&2";
-    if (clean.includes("3") && clean.includes("4")) return "Route 3&4";
-
-    // Exact match against all known route names
+    // Exact match only — Route 1 through Route 15, nothing combined
     const known = [
         "Route 1", "Route 2", "Route 3", "Route 4",
         "Route 5", "Route 6", "Route 7", "Route 8",
-        "Route 9", "Route 10", "Route 1&2", "Route 3&4"
+        "Route 9", "Route 10", "Route 11", "Route 12",
+        "Route 13", "Route 14", "Route 15"
     ];
 
     for (const name of known) {
         if (clean === name.toLowerCase()) return name;
     }
 
-    // Fallback: match by number — check "10" before "1"
+    // Fallback: match by number — check two-digit numbers before single digits
+    if (clean.includes("15")) return "Route 15";
+    if (clean.includes("14")) return "Route 14";
+    if (clean.includes("13")) return "Route 13";
+    if (clean.includes("12")) return "Route 12";
+    if (clean.includes("11")) return "Route 11";
     if (clean.includes("10")) return "Route 10";
     if (clean.includes("1"))  return "Route 1";
     if (clean.includes("2"))  return "Route 2";
@@ -150,10 +150,11 @@ function normalizeRouteName(route) {
     if (clean.includes("6"))  return "Route 6";
     if (clean.includes("7"))  return "Route 7";
     if (clean.includes("8"))  return "Route 8";
-        if (clean.includes("9"))  return "Route 9";
+    if (clean.includes("9"))  return "Route 9";
 
     return "Unassigned";
 }
+
 
 
 // ======================================
