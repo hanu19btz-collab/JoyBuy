@@ -88,7 +88,7 @@ const DEPOTS = {
         }
     },
 
-    "E16": {
+        "E16": {
         id:       "E16",
         name:     "Stratford Depot",
         postcode: "E16 4TG",
@@ -103,6 +103,50 @@ const DEPOTS = {
             "Route 7": ["E16"],
             "Route 8": ["EC1A","EC1M","EC1N","EC1R","EC1V","EC1Y"],
             "Route 9": ["EC2A","EC2M","EC2N","EC2R","EC2V","EC2Y","EC3A","EC3M","EC3N","EC3R","EC3V","EC4A","EC4M","EC4N","EC4R","EC4V","EC4Y"]
+        }
+    },
+
+    "CAM": {
+        id:       "CAM",
+        name:     "Cambridge Depot",
+        postcode: "CB1 7EB",
+        lat:      52.1920,
+        lng:      0.1380,
+        routes: {
+            "Route 1": ["CB1","CB9","CB10","CB11","CB21"],
+            "Route 2": ["CB3","CB6","CB23","CB24"],
+            "Route 3": ["CB4","CB5","CB7","CB8","CB25"],
+            "Route 5": ["CB2","CB22","SG7","SG8","SG9","SG18","SG19"]
+        }
+    },
+
+    "OXF": {
+        id:       "OXF",
+        name:     "Oxford Depot",
+        postcode: "OX2 0LX",
+        lat:      51.7515,
+        lng:      -1.2944,
+        routes: {
+            "Route 1": ["OX1","SN7","OX12","OX13"],
+            "Route 2": ["OX2","OX18","OX28","OX29","OX7"],
+            "Route 3": ["OX4","OX9","OX39","OX44","OX10","OX11","OX14","OX49"],
+            "Route 4": ["OX3","OX33","OX25","OX26","OX27","OX5","OX20"]
+        }
+    },
+
+    "ROM": {
+        id:       "ROM",
+        name:     "Romford Depot",
+        postcode: "RM13 8JE",
+        lat:      51.5212,
+        lng:      0.1709,
+        routes: {
+            "Route 1": ["E20"],
+            "Route 2": ["E15"],
+            "Route 3": ["E7","E6","E13","E10","E11","E12","E17","E18"],
+            "Route 4": ["IG1","IG2","IG3","IG4","IG5","IG6","IG7","IG8","IG9","IG10","IG11"],
+            "Route 5": ["RM1","RM2","RM3","RM4","RM5","RM6","RM7","RM8","RM9","RM10","RM11","RM12","RM14"],
+            "Route 6": ["RM13","RM15","RM19","RM16","RM17","RM18","RM20","CM11","CM12","CM13","CM14","CM15","SS12","SS14","SS13","SS15","SS16","SS17"]
         }
     }
 
