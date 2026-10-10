@@ -106,7 +106,7 @@ const DEPOTS = {
         }
     },
 
-    "CAM": {
+        "CAM": {
         id:       "CAM",
         name:     "Cambridge Depot",
         postcode: "CB1 7EB",
@@ -114,8 +114,9 @@ const DEPOTS = {
         lng:      0.1380,
         routes: {
             "Route 1": ["CB1","CB9","CB10","CB11","CB21"],
-            "Route 2": ["CB3","CB6","CB23","CB24"],
+            "Route 2": ["CB6","CB23","CB24"],
             "Route 3": ["CB4","CB5","CB7","CB8","CB25"],
+            "Route 4": ["CB3"],
             "Route 5": ["CB2","CB22","SG7","SG8","SG9","SG18","SG19"]
         }
     },
