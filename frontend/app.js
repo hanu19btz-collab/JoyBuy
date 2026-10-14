@@ -832,7 +832,8 @@ if (
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        coordinates: coordinates
+                        coordinates: coordinates,
+                           depot: currentDepot.id
                     })
                 }
             );
@@ -1001,8 +1002,9 @@ async function getDistanceMatrix(nodes) {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        locations:
+                     body: JSON.stringify({
+                           depot: currentDepot.id,
+                           locations:
                             nodes.map(
                                 n => [n.lng, n.lat]
                             )
