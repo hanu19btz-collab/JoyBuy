@@ -113,11 +113,14 @@ const DEPOTS = {
         lat:      52.1920,
         lng:      0.1380,
         routes: {
-            "Route 1": ["CB1","CB9","CB10","CB11","CB21"],
-            "Route 2": ["CB6","CB23","CB24"],
-            "Route 3": ["CB4","CB5","CB7","CB8","CB25"],
-            "Route 4": ["CB3"],
-            "Route 5": ["CB2","CB22","SG7","SG8","SG9","SG18","SG19"]
+            "Route 1": ["CB1"],
+            "Route 2": ["CB2"],
+            "Route 3": ["CB3"],
+            "Route 4": ["CB4"],
+            "Route 5": ["CB25","CB5"],
+            "Route 6": ["CB23","CB24","CB6"],
+            "Route 7": ["CB10","CB11","CB22","SG18","SG19","SG8"],
+            "Route 8": ["CB21","CB7","CB8","CB9"]
         }
     },
 
