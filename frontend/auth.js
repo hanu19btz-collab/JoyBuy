@@ -5,7 +5,19 @@ const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let currentProfile = null;
 
+// TEMPORARY: true = open the app without login and without cloud saves
+// (Supabase egress restriction). Set to false to restore normal login.
+const LOGIN_BYPASS = true;
+
 async function initAuth() {
+    if (LOGIN_BYPASS) {
+        document.getElementById('userLabel').textContent = 'no login';
+        document.getElementById('adminPanelBtn').style.display = 'none';
+        const sb = document.getElementById('saveSessionBtn');
+        if (sb) sb.style.display = 'none';
+        _showApp();
+        return;
+    }
     const { data: { session } } = await _supabase.auth.getSession();
     if (session) {
         currentUser = session.user;
@@ -76,6 +88,7 @@ window.doLogout = async function () {
 // ===== CLOUD SESSION CRUD =====
 
 window.saveSessionCloud = async function (name, depotConfigId, stops, movedStops, hiddenRoutes, stopMinutes) {
+    if (LOGIN_BYPASS) throw new Error('Cloud saves disabled temporarily');
     const { error } = await _supabase.from('sessions').insert({
         user_id: currentUser.id,
         depot_id: currentProfile.depot_id,
@@ -90,12 +103,24 @@ window.saveSessionCloud = async function (name, depotConfigId, stops, movedStops
 };
 
 window.getSessionsCloud = async function () {
+    if (LOGIN_BYPASS) return [];
+    // list only light columns (full stops JSON is loaded on demand)
     const { data, error } = await _supabase
         .from('sessions')
-        .select('*')
+        .select('id, name, created_at, depot_id')
         .order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
+};
+
+window.getSessionCloud = async function (sessionId) {
+    const { data, error } = await _supabase
+        .from('sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+    if (error) throw error;
+    return data;
 };
 
 window.deleteSessionCloud = async function (sessionId) {
@@ -135,7 +160,6 @@ async function _renderAdminSessions(filter) {
                 <div style="font-size:12px;color:#6b7280;margin-top:3px;">
                     <span style="background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">${s.depot_id}</span>
                     &nbsp;${new Date(s.created_at).toLocaleString()}
-                    &nbsp;&middot; ${Array.isArray(s.stops) ? s.stops.length : 0} stops
                 </div>
                 <button onclick="adminDeleteSession('${s.id}')"
                     style="margin-top:8px;padding:4px 12px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;">
