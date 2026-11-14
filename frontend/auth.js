@@ -7,7 +7,7 @@ let currentProfile = null;
 
 // TEMPORARY: true = open the app without login and without cloud saves
 // (Supabase egress restriction). Set to false to restore normal login.
-const LOGIN_BYPASS = true;
+const LOGIN_BYPASS = false;
 
 async function initAuth() {
     if (LOGIN_BYPASS) {
